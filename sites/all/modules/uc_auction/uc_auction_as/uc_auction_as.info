@@ -1,0 +1,12 @@
+; $Id: uc_auction_as.info,v 1.1.2.1 2009/03/31 16:30:57 garrettalbright Exp $
+name = Auction Antisnipe
+description = Extends an auction's expiration time if a bid is placed soon before its expiration.
+dependencies[] = uc_auction
+core = 6.x
+package = "Ubercart - extra"
+; Information added by drupal.org packaging script on 2009-04-01
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "uc_auction"
+datestamp = "1238545378"
+

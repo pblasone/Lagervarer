@@ -1,0 +1,141 @@
+<?php
+// $Id$
+/**
+* Install the LV Import module:
+* Create lv_import for storing import agents
+* Create lv_import_lines for storing individual lines in imported files
+* @file
+*/
+
+/**
+* Implementation of hook_install().
+*/
+function lv_import_install() {
+	drupal_install_schema('lv_import');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function lv_import_uninstall() {
+	drupal_uninstall_schema('lv_import');
+}
+
+/**
+* Implementation of hook_schema(),
+*/
+function lv_import_schema() {
+	return array(
+		'lv_import' => array(
+			'description' => 'Table for storing import agents.',
+			'fields' => array(
+				'import_id' => array(
+					'type' => 'serial',
+					'unsigned' => TRUE,
+					'not null' => TRUE,			
+				),
+				'uid' => array(
+					'description' => 'The {user}.uid of the client.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),				   
+                'settings' => array(
+                	'description' => 'A serialised array of settings for the import agent.',
+					'type' => 'text',
+					'not null' => TRUE,					
+					'default' => '',
+                ),  
+                'last_imported' => array(
+                	'description' => 'Timestamp of last imported.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+                ), 
+                'frequency' => array(
+                	'description' => 'Timestamp with the amount of seconds between each run.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+                ),  	
+				'last_result' => array(
+                	'description' => 'An array for storing status info about the last run.',
+					'type' => 'text',
+					'not null' => TRUE,					
+					'default' => '',				
+				),				
+                'status' => array(
+                	'description' => 'Currently just a boolean for whether agent is active or not, but can be used for more status types.',
+					'type' => 'int',
+					'size' => 'tiny',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 1,
+                ), 	
+			),
+			'primary key' => array('import_id'),						
+
+		),		
+		'lv_import_lines' => array(
+			'description' => 'Table for the individual items found in an imported file. Used to keep track of what is imported, succes or fail, node mappings, etc.',
+			'fields' => array(
+				'line_id' => array(
+					'description' => 'An internal unique id.',
+					'type' => 'serial',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),	
+				'import_id' => array(
+					'description' => 'The ID number of the import agent.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),					
+				'serial' => array(									 
+					'description' => 'A item number (SKU) that is unique for the user.',				
+					'type' => 'varchar',
+                    'length' => 50,							
+					'not null' => TRUE,
+				),
+				'nid' => array(
+					'description' => 'The ID of the node that this line is mapped to.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),					
+				'fields' => array(
+                	'description' => 'A serialised array of the fields => values of the line.',
+					'type' => 'text',
+					'not null' => TRUE,					
+					'default' => '',				
+				),
+                'changed' => array(
+                	'description' => 'Timestamp of last change.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+                ), 	
+                'status' => array(
+                	'description' => 'Status about last change. 0 = (not used), 1 = added, 2 = updated, 3 = skipped, 4 = error.',
+					'type' => 'int',
+					'size' => 'tiny',					
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+                ), 					
+				'message' => array(
+                	'description' => 'Status message regarding last import attempt. Mostly for errors.',				
+					'type' => 'text',
+					'not null' => TRUE,					
+					'default' => '',
+				),					
+			),	
+			'primary key' => array('line_id'),			
+		),			 
+	);
+
+}

@@ -1,0 +1,12 @@
+Version 1.6. 08-Feb-2007 (michels):
+- GTCT could be displayed directly in pane
+- Provides a print-link
+- Provides a download-link
+- Provides page view of GTCT at path '/gtct'
+- GTCT could be edit at store administration
+- Provides input formats
+- Provides file upload
+- Some theme functions
+
+Version 1.5 05-Feb-2007 (keesje76):
+- typo fix

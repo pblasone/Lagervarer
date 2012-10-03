@@ -1,0 +1,12 @@
+; $Id: uc_auction_now.info,v 1.1.2.7 2009/03/20 17:00:17 garrettalbright Exp $
+name = Auction Buy Now
+description = Allows customers to purchase auctioned items immediately.
+dependencies[] = uc_auction
+core = 6.x
+package = "Ubercart - extra"
+; Information added by drupal.org packaging script on 2009-04-01
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "uc_auction"
+datestamp = "1238545378"
+

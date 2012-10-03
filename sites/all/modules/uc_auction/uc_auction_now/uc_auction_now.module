@@ -1,0 +1,422 @@
+<?php
+// $Id: uc_auction_now.module,v 1.1.2.7 2009/03/20 17:00:17 garrettalbright Exp $
+
+/**
+ * @defgroup uc_auction_now Ubercart Auction Buy Now: Allows auctioned products
+ * to be purchased immediately.
+ */
+
+/**
+ * Implementation of hook_form_alter().
+ */
+
+function uc_auction_now_form_alter(&$form, $form_state, $form_id) {
+	if (preg_match('/(.+)_node_form/', $form_id, $matches) && in_array($matches[1], module_invoke_all('product_types'))) {
+		// We're editing a product type node. Add form elements to make it possible
+		// to Buy Now this product.
+		$form['base']['auction']['is_now'] = array(
+			'#type' => 'checkbox',
+			'#title' => t('&ldquo;Buy now&rdquo; functionality enabled for this product.'),
+			'#description' => t('When enabled, customers can purchase the product immediatelty for the standard sell price without placing bids. When the product is purchased, the auction ends immediately.'),
+			// If this is a pre-existing product, use the pre-existing Buy Now value
+			// added in hook_nodeapi($op = 'load'); else, use the default value
+			'#default_value' => (isset($form['#node']->uc_auction) && $form['#node']->uc_auction['buy_now']) || (!isset($form['#node']->nid) && variable_get('uc_auction_now_new_default', FALSE)),
+			'#weight' => 15,
+		);
+	}
+	elseif ($form_id === 'uc_product_field_settings_form') {
+		// Add widget to field form
+		$fields = variable_get('uc_auction_now_field_settings', array(
+			'uc_auction_now_box' => array(
+				'enabled'=> TRUE,
+				'weight' => -2,
+			),
+		));
+		$form['fields']['uc_auction_now_box'] = array(
+			'enabled' => array(
+				'#type' => 'checkbox',
+				'#default_value' => $fields['uc_auction_now_box']['enabled'],
+			),
+			'title' => array(
+				'#type' => 'markup',
+				'#value' => t('Auction buy now box'),
+			),
+			'weight' => array(
+				'#type' => 'weight',
+				'#delta' => 10,
+				'#default_value' => $fields['uc_auction_now_box']['weight'],
+			),
+		);
+		// Resort the list, without #properties
+		$props = array();
+		$children = array();
+		foreach ($form['fields'] as $key => $val) {
+			if (strpos($key, '#') === 0) {
+				$props[$key] = $val;
+			}
+			else {
+				$children[$key] = $val;
+			}
+		}
+		uasort($children, 'uc_weight_sort');
+		$form['fields'] = $props + $children;
+		$form['#submit'][] = 'uc_auction_now_field_settings_submit';
+		$form['buttons']['reset']['#submit'][] = 'uc_auction_now_field_settings_submit';
+	}
+	elseif ($form_id === 'uc_auction_settings_form') {
+		// Add "By Now" by default check box
+		$form['uc_auction_default_fset']['uc_auction_now_new_default'] = array(
+			'#type' => 'checkbox',
+			'#title' => t('Enable &ldquo;Buy now&rdquo; functionality by default'),
+			'#description' => t('If checked, the new product form will have the <em>&ldquo;Buy now&rdquo; functionality enabled for this product</em> check box checked by default.'),
+			'#default_value' => variable_get('uc_auction_now_new_default', FALSE),
+//			'#disabled' => isset($form['#node']->uc_auction) && $form['#node']->uc_auction['expiry'] <= time(),
+			'#weight' => 6,
+		);
+		$form['uc_auction_default_fset']['uc_auction_now_dis_over'] = array(
+			'#type' => 'checkbox',
+			'#title' => t('Disable &ldquo;Buy Now&rdquo; if the high bid is equal to or higher than the sell price'),
+			'#description' => t('If checked, if the value of the current high bid on an auctioned product is equal to or higher than the sell price, the product will behave as if &ldquo;Buy Now&rdquo; were not enabled for it.'),
+			'#default_value' => variable_get('uc_auction_now_dis_over', TRUE),
+			'#weight' => 7,
+		);
+		// Add notification fields
+		$form['uc_auction_now_notify_bought_fset'] = array(
+			'#type' => 'fieldset',
+			'#title' => t('Bought notification'),
+			'#weight' => -8,
+			'#description' => t('This message is sent to the highest bidder of an auction when the auction ends due to the item being purchased using the &ldquo;Buy now&rdquo; feature.'),
+			'uc_auction_now_notify_bought_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_auction_now_notify_bought_subj', uc_get_message('uc_auction_now_notify_bought_subj')),
+				'#weight' => 5,
+			),
+			'uc_auction_now_notify_bought_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message emailed to the last bidder. <a href="!uses">Uses auction, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_auction_now_notify_bought_msg', uc_get_message('uc_auction_now_notify_bought_msg')),
+				'#weight' => 10,
+			),
+		);
+	}
+	elseif (strpos($form_id, 'uc_catalog_buy_it_now_form_') === 0 && $form['#parameters'][2]->uc_auction['buy_now']) {
+		// I never could figure out how Ubercart handles this form, which will have
+		// a different $form_id for each node. It's weird!
+		// We're checking for $node->content['uc_auction_now'] to stop us from
+		// altering this form for non-auction products.
+		$form['submit']['#weight'] = 5;
+		$form['submit']['#value'] = t('Buy now');
+		$form['buy_now_price'] = array(
+			'#title' => t('Buy now'),
+			'#type' => 'item',
+			'#value' => uc_currency_format($form['#parameters'][2]->sell_price),
+			'#weight' => 0,
+		);
+		$form['#validate'][] = 'uc_auction_now_validate';
+		$form['#submit'][] = 'uc_auction_now_submit';
+		$form['#theme'] = 'uc_auction_now_table';
+	}
+}
+
+/**
+ * Save or delete the field settings per the user's request.
+ */
+
+function uc_auction_now_field_settings_submit($form, &$form_state) {
+	if ($form_state['values']['op'] === t('Reset to defaults')) {
+		variable_del('uc_auction_now_field_settings');
+	}
+	else {
+		variable_set('uc_auction_now_field_settings', array(
+			'uc_auction_now_box' => $form_state['values']['fields']['uc_auction_now_box'],
+		));
+	}
+}
+
+/**
+ * Make sure it's not too late to buy now.
+ */
+
+function uc_auction_now_validate($form, &$form_state) {
+	if (time() > $form['#parameters'][2]->uc_auction['expiry']) {
+		form_set_error('submit', t('Sorry, but this auction has expired. You cannot use the &ldquo;Buy now&rdquo; feature for expired auctions.'));
+	}
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+
+function uc_auction_now_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+	static $buy_now = NULL;
+	if (_uc_auction_is_uc_type($node)) {
+		if ($op === 'validate') {
+			if ($node->is_auction) {
+				$buy_now = $node->is_now;
+			}
+			else {
+				$buy_now = FALSE;
+			}
+		}
+		elseif ($op === 'insert' && $buy_now) {
+			$record = array(
+				'nid' => $node->nid,
+				'bought_now' => 0,
+			);
+			drupal_write_record('uc_auction_now', $record);
+		}
+		elseif ($op === 'update' && $buy_now !== NULL) {
+			$current = db_fetch_array(db_query('SELECT ua.expiry, uan.nid AS bn FROM {uc_auction} ua LEFT JOIN {uc_auction_now} uan ON ua.nid = uan.nid WHERE ua.nid = %d', $node->nid));
+			if ($current['bn'] === NULL && $buy_now) {
+				// Enabling buy now
+				$record = array(
+					'nid' => $node->nid,
+					'bought_now' => 0,
+				);
+				drupal_write_record('uc_auction_now', $record);
+			}
+			elseif ($current['bn'] && !$buy_now && $current['expiry'] > time()) {
+				// Disabling buy now
+				db_query('DELETE FROM {uc_auction_now} WHERE nid = %d', $node->nid);
+			}
+		}
+		elseif ($op === 'delete') {
+			db_query('DELETE FROM {uc_auction_now} WHERE nid = %d', $node->nid);
+		}
+		elseif ($op === 'load' && isset($node->uc_auction)) {
+			$bn = db_fetch_array(db_query('SELECT bought_now FROM {uc_auction_now} WHERE nid = %d', $node->nid));
+			if ($bn) {
+				$node->uc_auction['buy_now'] = TRUE;
+				$node->uc_auction['bought_now'] = $bn['bought_now'] == 1;
+			}
+			else {
+				$node->uc_auction['buy_now'] = FALSE;
+				$node->uc_auction['bought_now'] = FALSE;
+			}
+		}
+		elseif ($op === 'view' && isset($node->uc_auction['buy_now']) && (!variable_get('uc_auction_now_dis_over', TRUE) || $node->sell_price > $node->uc_auction['high_bid_amt'])) {
+			if ($node->uc_auction['expiry'] > time()) {
+				$fields = variable_get('uc_auction_now_field_settings', array(
+					'uc_auction_now_box' => array(
+						'enabled' => TRUE,
+						'weight' => -2,
+					),
+				));
+				if ($fields['uc_auction_now_box']['enabled'] && $node->uc_auction['buy_now']) {
+					$node->content['uc_auction_now'] = array(
+						'#value' => drupal_get_form('uc_catalog_buy_it_now_form_' . $node->nid, $node),
+						'#weight' => $fields['uc_auction_now_box']['#weight'],
+					);
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Implemention of hook_theme().
+ */
+
+function uc_auction_now_theme($existing, $type, $theme, $path) {
+	return array(
+		'uc_auction_now_table' => array(
+			'arguments' => array('form' => NULL),
+		),
+	);
+}
+
+
+
+/**
+ * Theme the "Buy now" table.
+ */
+
+function theme_uc_auction_now_table($form) {
+	$bn_t = $form['buy_now_price']['#title'];
+	unset($form['buy_now_price']['#title']);
+	$rows = array(
+		array( // tr
+			array( // th
+				'header' => TRUE,
+				'data' => $bn_t,
+				'class' => 'uc-auction-now-buy-now-hdr',
+			),
+			array( // td
+				'data' => drupal_render($form['buy_now_price']),
+				'class' => 'uc-auction-now-buy-now display_price',
+			),
+		),
+		array( // tr
+			array( // td
+				'data' => drupal_render($form['submit']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']) . '<div class="description">' . $form['submit']['#description'] . '</div>',
+				'class' => 'uc-auction-now-buy-now-submit uc-auction-user-bid-submit',
+				'colspan' => 2,
+			),
+		),
+	);
+	return theme('table', array(), $rows, array('class' => 'uc-auction-now-table uc-auction-bid-table'));
+}
+				
+/**
+ * Implementation of hook_mail().
+ */
+
+function uc_auction_now_mail($key, &$message, $params) {
+	if ($key === 'uc_auction_now_bought') {
+		$message['body'] = token_replace_multiple(
+			variable_get('uc_auction_now_notify_bought_msg', uc_get_message('uc_auction_now_notify_bought_msg')),
+			array('global' => NULL, 'node' => $params['node'], 'auction' => $params['node'])
+		);
+		$message['subject'] = token_replace_multiple(
+			variable_get('uc_auction_now_notify_bought_subj', uc_get_message('uc_auction_now_notify_bought_subj')),
+			array('global' => NULL, 'product' => $params['node'], 'auction' => $params['node'])
+		);
+	}
+}
+
+/* Ubercart Auction hooks *************************************************** */
+
+/**
+ * Implementation of hook_auc_remove() (an Ubercart Auction hook).
+ */
+
+function uc_auction_now_auc_remove($node, $deletion) {
+	db_query('DELETE FROM {uc_auction_now} WHERE nid = %d', $node->nid);
+}
+
+/**
+ * Implementation of hook_auc_message_alter() (an Ubercart Auction hook).
+ */
+
+function uc_auction_now_auc_message($node) {
+	if ($node->uc_auction['bought_now']) {
+		global $user;
+		if ($node->uc_auction['high_bid_uid'] == $user->uid) {
+			drupal_set_message(t('This auction ended when you purchased the product using the &ldquo;Buy Now&rdquo; feature.'));
+		}
+		else {
+			drupal_set_message(t('This auction ended when another user purchased the product using the &ldquo;Buy Now&rdquo; feature.'), 'warning');
+			return FALSE;
+		}
+	}
+}
+
+/* Ubercart hooks *********************************************************** */
+
+/**
+ * Implementation of hook_cart_item() (an Ubercart hook).
+ *
+ * I don't really like how this is adding yet another query to things, but…
+ */
+
+function uc_auction_now_cart_item($op, &$item) {
+	if ($op === 'load' && $item->is_auc) {
+		// If the item hasn't expired yet and it's a Buy Now item…
+		$info = db_fetch_array(db_query('SELECT ua.expiry FROM {uc_auction_now} uan INNER JOIN {uc_auction} ua ON uan.nid = ua.nid'));
+		if ($info !== NULL && $info['expiry'] > time()) {
+			$item->price = $item->sell_price;
+		}
+	}
+}
+
+/**
+ * Implementation of hook_order() (an Ubercart hook).
+ */
+
+function uc_auction_now_order($op, &$arg1, $arg2) {
+	if ($op === 'submit') {
+		// Check to see if this is a Buy Now product; if so, end the auction
+		// Get nids of products
+		$nids = array();
+		foreach ($arg1->products as $key => $product) {
+			$nids[$key] = $product->nid;
+			// This falls apart if the buyer has purchased two of the same node at
+			// different prices; it also doesn't account for quantity. @TODO: Is this
+			// a problem?
+		}
+		// See if any of the nids are in {uc_auction_now}
+		$rez = db_query('SELECT nid FROM {uc_auction_now} WHERE nid IN (' . db_placeholders($nids) .')', $nids);
+		$ng = array();
+		$nodes = array();
+		while ($nid = db_fetch_object($rez)) {
+			// …So this is a Buy Now product.
+			// Insert a bid for the value of the Buy Now price.
+			$node = node_load($nid->nid);
+			// Make sure this purchase is still valid
+			if (time() >= $node->uc_auction['expiry']) {
+				$ng[] = $node;
+			}
+			elseif (count($ng) === 0) {
+				$nodes[] = $node;
+			}
+		}
+		if (count($ng) === 0) {
+			// Okay, the user isn't trying to buy anything they shouldn't.
+			foreach ($nodes as $node) {
+				$bid_record = array(
+					'nid' => $node->nid,
+					'uid' => $arg1->uid,
+					'time' => time(),
+					'amount' => $node->sell_price,
+				);
+				$outbid = $node->uc_auction['high_bid_uid'];
+				$response = module_invoke_all('bid_alter', $node, $bid_record);
+				if (!in_array(FALSE, $response, TRUE)) {
+					uc_auction_insert_bid($bid_record, array('expiry' => time(), 'notified' => 1));
+					$buy_record = array(
+						'nid' => $node->nid,
+						'bought_now' => 1,
+					);
+					drupal_write_record('uc_auction_now', $buy_record, 'nid');
+					if (variable_get('uc_auction_notify_outbid', TRUE) && $outbid != 0) {
+						$outbid_user = user_load($outbid);
+						if (!isset($outbid_user->uc_auction_notify_outbid) || $outbid_user->uc_auction_notify_outbid) {
+							drupal_mail('uc_auction_now', 'uc_auction_now_bought', $outbid_user->mail, user_preferred_language($outbid_user), array('node' => $node, 'user' => $outbid_user));
+							watchdog('uc auction now', 'Outbid via "Buy Now" notification for !item sent to @user.', array('@user' => $outbid_user->name, '!item' => l($node->title, "node/{$node->nid}")));
+						}
+					}
+				}
+			}
+		}
+		else {
+			// Some of the things the user is trying to Buy Now are not allowed.
+			$item_links = '<ul>';
+			foreach ($ng as $item) {
+				$item_links .= '<li>' . l($node->title, "node/{$node->nid}") . '</li>';
+			}
+			$item_links .= '</ul>';
+			return array(
+				array(
+					'pass' => FALSE,
+					'message' => format_plural(count($ng), 'Your order could not continue because one of the items you are trying to purchase using the &ldquo;Buy Now&rdquo; feature cannot be purchased because it has expired. Please remove the item from <a href="!cart">your cart</a> to continue. The item is:!items', 'Your order could not continue because some of the items you are trying to purchase using the &ldquo;Buy Now&rdquo; feature cannot be purchased because they have expired. Please remove the items from <a href="!cart">your cart</a> to continue. The items are:!items', array('!cart' => url('cart'), '!items' => $item_links)),
+				),
+			);
+		}
+	}
+}
+
+/**
+ * Implementation of hook_uc_message() (an Ubercart hook).
+ */
+
+function uc_auction_now_uc_message() {
+	return array(
+		'uc_auction_now_notify_bought_subj' => t('[auction-product-name] at [store-name] was bought by another user'),
+		'uc_auction_now_notify_bought_msg' => t("Another site user purchased a product up for auction at [store-name] by using the \"Buy Now\" feature.\n\nThis means that the item is no longer up for auction. Sorry!\n\nProduct: [auction-product-name]\n\n -- [store-owner]\n\nIf you would prefer not to receive these notifications, log in to your user account at [store-name] and click the \"Edit\" tab. Then uncheck the \"Notify me by email when I'm outbid on an auction\" check box.\n[site-login-url]"),
+	);
+}
+
+/* Views hooks ************************************************************** */
+
+/**
+ * Implementation of hook_views_api().
+ */
+
+function uc_auction_now_views_api() {
+	return array(
+		'api' => 2,
+		'path' => drupal_get_path('module', 'uc_auction_now') . '/views',
+	);
+}

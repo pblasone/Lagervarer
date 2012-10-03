@@ -1,0 +1,807 @@
+<?php
+// $Id$
+
+/**
+* @file
+* Module for searching products on Lagervarer and for managing product related e-mail agents
+*/
+
+
+		
+/** 
+ * Implementation of hook_menu().
+ */
+/*
+function lv_search_menu() {
+	return array(
+		'arepartier/blandede-partier' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'lv_search_test',
+			'access arguments' => array('access content'),
+		),
+	);        	 
+} 
+  */
+
+/**
+ * Implementation of hook_perm().
+ */
+function lv_search_perm() {
+	return array('create e-mail notifications');
+}   
+
+/**
+ * Implementation of hook_theme().
+ */
+function lv_search_theme($existing, $type, $theme, $path) {
+	return array(
+		'lv_search_search_form' => array(
+			'arguments' => array('form' => NULL),
+		),
+	);
+}      
+   
+   
+/**
+ * Implementation of hook_block().
+ */                               
+function lv_search_block($op = 'list', $delta = 0, $edit = array()) {
+	switch ($op) {
+    
+    	case 'list':
+        	$blocks[0]['info'] = t('LV Product Search Form');
+            return $blocks;
+            
+		case 'view':
+	    	$blocks['subject'] = t('Search'); 
+			           
+			switch ($delta) {
+				case 0:
+	       		    $blocks['content'] = drupal_get_form('lv_search_search_form');
+					break;
+			}													
+
+            return $blocks;
+
+	}
+}
+   		
+   
+/**
+ * Implementation of hook_cron(). 
+ */
+function lv_search_cron() {
+	$rs = db_query('SELECT s.*, n.last_notified FROM {lv_search} s INNER JOIN {lv_search_notify} n ON s.notify_id = n.notify_id WHERE s.notify_id > 0 AND (n.notify_interval+n.last_notified) < UNIX_TIMESTAMP() AND s.uid > 0');
+	while ($query = db_fetch_array($rs)) {
+		lv_search_notification_send($query);	  
+	}
+	
+	db_query('UPDATE {lv_search_notify} SET last_notified = UNIX_TIMESTAMP() WHERE (notify_interval+last_notified) < UNIX_TIMESTAMP()');
+}   
+  
+
+function lv_search_notification_send($query) {
+  $sql_where = '';  
+  $sql_args = array($query['stype']);
+  $sql_join = '';
+  
+  if ((int)$query['search_uid'] > 0) {
+	$account = user_load($query['search_uid']);
+	  if (is_object($account)) {
+		$sql_where .= ' AND n.uid = %d';  
+		$sql_args[] = $account->uid;
+	  }
+  }		  
+  
+  $sql_where .=	' AND n.created >= %d';
+  $sql_args[] = $query['last_notified'];
+  
+  lv_search_prepare_sql($query, $query['stype'], $sql_where, $sql_args, $sql_join);
+
+  $sql = "SELECT DISTINCT(n.nid)
+    FROM {node} n
+      INNER JOIN {term_node} tn ON n.vid = tn.vid
+      INNER JOIN {uc_products} AS p ON n.vid = p.vid 
+	  LEFT OUTER JOIN {uc_bartering} ucb ON n.nid = ucb.nid 
+	  LEFT OUTER JOIN {uc_auction} uca ON n.nid = uca.nid 
+	  LEFT OUTER JOIN {uc_auction_now} ucn ON n.nid = ucn.nid "	  
+      . $sql_join .
+    "WHERE n.type = '%s'".$sql_where .
+      " ORDER BY n.created DESC";      
+
+ $products = array();	  
+ $rs = db_query($sql, $sql_args);
+ while ($row = db_result($rs)) {
+    $products[] = $row;  
+ } 
+ 
+ if (!count($products)) {
+ 	return FALSE;
+ }	
+ 
+ $recipient_user = user_load($query['uid']);	  
+ drupal_mail('lv_search', 'varepartier', $recipient_user->mail, user_preferred_language($recipient_user), array('user' => $recipient_user, 'products' => $products, 'query' => $query));		
+
+} 
+
+function lv_search_product_table($products) {
+  $base_url = url('/', array('absolute' => TRUE));
+  $time = time();			   
+  
+  $rows = array('<tr><th>'.t('Image').'</th><th>'.t('Item description').'</th><th>'.t('Price').'</th></tr>');
+  foreach ($products as $nid) {
+	$node = node_load($nid);
+   	$row = '<tr>';
+   	   
+      if (module_exists('imagecache')) {
+        if (($field = variable_get('uc_image_'. $node->type, '')) && isset($node->$field) && file_exists($node->{$field}[0]['filepath'])) {
+          $image = $node->{$field}[0];
+          $row .= '<td width="90" align="center">' . theme('imagecache', 'mini', $image['filepath'], $image['data']['alt'], $image['data']['title']) . '</td>';
+        }
+        else {
+          $row .= '<td width="90" align="center">' . t('n/a') . '</td>';
+        }
+      }               
+		 
+    $row .= '<td><b>'. l($node->title, 'node/'.$node->nid, array('absolute' => TRUE)) .'</b></td>';
+	 
+    $price = '';                              
+	if (isset($node->uc_auction)) {
+        $hb_title = (int)$node->uc_auction['bid_count'] ? t('Highest bid') : t('Starting price');
+    	$price .= '<tr><td width="30"><img align="absmiddle" src="'.$base_url.'sites/all/themes/zenlager/images/ikon_auktion.png" alt="'.t('This item is on auction.').'" /></td><td width="70" height="30">'.t('Auction').'</td><td align="right">'.t('!count bids', array('!count' => $node->uc_auction['bid_count'])).'</td></tr>
+        	      <tr><td colspan="3"><table class="text"><tr><td width="80">'.$hb_title.'</td><td align="right">'.uc_currency_format($node->uc_auction['high_bid_amt']).'</td></tr>';
+		if ($node->uc_auction['expiry'] < $time) {
+        	$price .= '<tr><td colspan="2" align="right">'.t('Auction ended').'</td></tr>';
+		}
+        elseif ($node->uc_auction['expiry'] < strtotime("+1 hour", $time)) {
+			$price .= '<tr><td>'.t('Expires').'</td><td>'.format_interval($node->uc_auction['expiry'] - $time).'</td></tr>';				                       
+        }
+        else {
+			$price .= '<tr><td>'.t('Expires').'</td><td>'.format_interval($node->uc_auction['expiry'] - $time).'</td></tr>';				                               
+        }            
+        $price .= '</table></td></tr>';   
+		if ($node->sell_price > 0 && $node->uc_auction['buy_now']) {
+			$price .= '<tr><td width="30"><img align="absmiddle" src="'.$base_url.'sites/all/themes/zenlager/images/ikon_buynow.png" alt="'.t('You can buy this item at a fixed price.').'" /></td><td width="70" height="30">'.t('Buy Now').'</td><td align="right">'.uc_currency_format($node->display_price).'</td></tr>';
+        }
+
+    } 
+    elseif (isset($node->uc_bartering)) {
+    	$tr_class = 'product-bartering';    
+		$price = '<tr><td width="30"><img align="absmiddle" src="'.$base_url.'sites/all/themes/zenlager/images/ikon_givetbud.png" alt="'.t('You can negotiate a price for this item.').'" /></td><td width="70" height="30">'.t('Place a bid').'</td><td align="right" height="30">'.t('!count bids', array('!count' => $node->uc_bartering['bid_count'])).'</td></tr>';
+		if ($node->sell_price > 0) {
+			$price .= '<tr><td width="30"><img align="absmiddle" src="'.$base_url.'sites/all/themes/zenlager/images/ikon_buynow.png" alt="'.t('You can buy this item at a fixed price.').'" /></td><td width="70" height="30">'.t('Buy Now').'</td><td align="right">'.uc_currency_format($node->display_price).'</td></tr>';
+        }
+    }
+    else {
+			$price .= '<tr><td width="30"><img align="absmiddle" src="'.$base_url.'sites/all/themes/zenlager/images/ikon_buynow.png" alt="'.t('You can buy this item at a fixed price.').'" /></td><td width="70" height="30">'.t('Buy Now').'</td><td align="right">'.uc_currency_format($node->display_price).'</td></tr>';
+    }
+
+	$row .= '<td valign="top"><table class="text" width="200">'. $price .'</table></td></tr>';
+		 
+	$rows[] = $row;	
+  }
+	
+  	
+  return '<table border=1 bgcolor="#FDFDF5" class="text" cellpadding=5>'.implode('', $rows).'</table>';
+}
+
+function lv_search_mail($key, &$message, $params) {
+			  
+   switch ($key) {
+    case 'varepartier':	
+      $message['subject'] = t('New products match your search');
+      $message['from'] = variable_get('uc_store_email', 'info@lagervarer.dk');
+
+	  if ($params['user']->mimemail_textonly) {
+    	  $message['body'][] = token_replace_multiple(lv_search_plain_mail($params['products'], $params['query']), array('global' => NULL, 'user' => $params['user']));				  
+	  }
+	  else {
+	      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+    	  $message['body'][] = lv_search_html_mail($params['products'], $params['query']);
+	  }		  
+      break;
+	  
+	}	  
+
+
+
+
+}		  
+	
+
+function _lv_search_link($query) {
+	$url_type = $query['type'] == 'consumer' ? 'lagersalg' : 'varepartier';	
+	if ((int)$query['search_uid'] > 0) {
+		$account = user_load($query['search_uid']);
+		$url = url($account->profile_path, array('absolute' => TRUE));
+		$url .= '/' . $url_type . '?sid=' . $query['sid'];
+	}				
+	else {
+		$url = url($url_type, array('query' => 'sid='.$query['sid'], 'absolute' => TRUE));
+	}
+	return $url;
+}
+
+function lv_search_plain_mail($products, $query) {
+	$query_url = _lv_search_link($query);
+	$product_count = count($products);
+
+    return t("Your search agent @title found @count new item(s) that match your criteria.\n\nTo view the new products that match your search, please click here:\n!url\n\nFollowing the link above will also allow you to edit or delete your search agent.\n\nTo receive a detailed list of new products in these search agent e-mails, please enable HTML e-mail in your user settings:\n!email-url\n\n\nKind regards\n\n[site-name]\n[site-url]", array('@title' => $query['title'], '@count' => $product_count, '!url' => $query_url, '!email-url' => url('user/'.$query['uid'].'/edit', array('absolute' => TRUE))));
+}
+
+
+function lv_search_html_mail($products, $query) {
+	$query_url = _lv_search_link($query);
+	$product_count = count($products);
+	if ($product_count > 20) {
+		$products = array_slice($products, 0, 20);  
+	}
+	
+	$file = drupal_get_path('module', 'lv_search') .'/templates/mail.itpl.php';
+
+    ob_start();
+    require($file);
+    $output = ob_get_contents();
+    ob_end_clean();
+
+	$output = str_replace('[[PRODUCTTABLE]]', lv_search_product_table($products), $output);
+	$output = str_replace('[lv-search-name]', $query['title'], $output);
+	$output = str_replace('[lv-search-url]', $query_url, $output);	
+	$output = str_replace('[lv-search-count]', $product_count, $output);	
+	$output = str_replace('[lv-search-count-preview]', count($products), $output);			
+  
+	return $output;
+
+}	 
+
+function lv_search_prepare_sql($query, $lv_type = 'varepartier', &$sql_where, &$sql_args, &$sql_join) {
+      if ($lv_type == 'vareparti') {
+		$sql_join .= 'INNER JOIN {content_type_vareparti} ctv ON n.vid = ctv.vid LEFT OUTER JOIN {uc_product_stock} ps ON n.nid = ps.nid ';
+	  }
+
+	  if (strlen($query['search_phrase'])) {
+		$separator = $query['search_mode'] ? ' OR ' : ' AND ';
+		$keywords = search_parse_query(check_plain($query['search_phrase']));
+		$sql_keywords = array();							 
+		$sql_cat_keywords = array();
+		$sql_cat_args = array();
+		foreach ($keywords[1] as $keyword) {
+			$sql_keywords[] = "(v.title LIKE '%%%s%%' OR v.body LIKE '%%%s%%' OR td.name LIKE '%%%s%%' OR ts.name LIKE '%%%s%%')";
+			$sql_cat_keywords[] = "(td.name LIKE '%%%s%%' OR ts.name LIKE '%%%s%%')";
+			$sql_args[] = $keyword;
+			$sql_args[] = $keyword;	
+			$sql_args[] = $keyword;
+			$sql_args[] = $keyword;			
+			$sql_cat_args[] = $keyword;	
+			$sql_cat_args[] = $keyword;			
+		}		
+		$sql_where .= ' AND (' . implode($separator, $sql_keywords)	. ')';
+		$sql_cat .= '(' . implode(' OR ', $sql_cat_keywords) . ')';		
+		$sql_join .= 'INNER JOIN {node_revisions} v ON n.vid = v.vid ';
+		$sql_join .= 'INNER JOIN {term_data} td ON tn.tid = td.tid LEFT OUTER JOIN {term_synonym} ts ON tn.tid = ts.tid ';	  		
+	  }
+
+	  $sql_types = array();
+	  if ($query['is_bargaining']) {
+		$sql_types[] = '(ucb.nid = n.nid AND (uca.nid IS NULL OR uca.expiry < UNIX_TIMESTAMP()))';    
+	  }
+	  if ($query['is_auction']) {
+		$sql_types[] = '(uca.nid = n.nid AND uca.expiry > UNIX_TIMESTAMP())';      
+	  }
+	  
+	  if ($query['is_fixed']) {
+		$sql_types[] = '((uca.nid IS NULL OR uca.expiry < UNIX_TIMESTAMP() OR ucb.nid = n.nid) AND p.sell_price > 0)';  
+		if ((int)$query['price_from'] > 0) {
+			if ($query['price_mode']) {
+				$sql_where .= ' AND (((p.sell_price / p.pkg_qty) >= %d AND ctv.field_price_per_piece_value = 0) OR (p.sell_price >= %d AND ctv.field_price_per_piece_value = 1))';
+				$sql_args[] = $query['price_from'];				
+			}
+			elseif ($lv_type == 'vareparti') {
+				$sql_where .= ' AND ((p.sell_price >= %d AND ctv.field_price_per_piece_value = 0) OR (ctv.field_price_per_piece_value = 1 AND ((p.sell_price * ps.stock) >= %d OR ps.active = 0)))';
+	  			$sql_args[] = $query['price_from'];				
+			}								
+			else {
+				$sql_where .= ' AND p.sell_price >= %d';			
+			}
+			$sql_args[] = $query['price_from'];
+		}
+		if ((int)$query['price_to'] > 0) {
+			if ($query['price_mode']) {
+				$sql_where .= ' AND (((p.sell_price / p.pkg_qty) <= %d AND ctv.field_price_per_piece_value = 0) OR (p.sell_price <= %d AND ctv.field_price_per_piece_value = 1))';
+				$sql_args[] = $query['price_to'];				
+			}
+			elseif ($lv_type == 'vareparti') {
+				$sql_where .= ' AND ((p.sell_price <= %d AND ctv.field_price_per_piece_value = 0) OR ((p.sell_price * p.default_qty) <= %d AND ctv.field_price_per_piece_value = 1))';
+				$sql_args[] = $query['price_to'];
+			}								
+			else {
+				$sql_where .= ' AND p.sell_price <= %d';			
+			}
+			$sql_args[] = $query['price_to'];		
+		}	  					  			
+	  }	
+	  
+	  if ((int)$query['qty_from'] > 0) {
+		$sql_where .= ' AND (((p.pkg_qty * ps.stock) >= %d AND ctv.field_price_per_piece_value = 0) OR (ps.stock >= %d AND ctv.field_price_per_piece_value = 1) OR ps.active = 0)';	    
+		$sql_args[] = $query['qty_from'];				
+		$sql_args[] = $query['qty_from'];						
+	  }
+	  if ((int)$query['qty_to'] > 0) {  
+		$sql_where .= ' AND (((p.pkg_qty * ps.stock) <= %d AND ctv.field_price_per_piece_value = 0) OR (ps.stock <= %d AND ctv.field_price_per_piece_value = 1) OR ps.active = 0)';	    
+		$sql_args[] = $query['qty_to'];					
+		$sql_args[] = $query['qty_to'];						
+	  }	  
+
+	  if (is_array($query['c']) && count($query['c']) < (int)$query['cc']) {
+	  	if ($sql_cat) {
+		  	$sql_where .= ' AND ('.$sql_cat.' OR tn.tid IN ('.db_placeholders($query['c']).'))';
+			foreach ($sql_cat_args as $carg) {
+				$sql_args[] = $carg;			
+			}
+		}
+		else {
+			$sql_where .= ' AND tn.tid IN ('.db_placeholders($query['c']).')';		
+		}			
+		foreach ($query['c'] as $category) {
+			$sql_args[] = $category;			
+		}	
+	  
+	  } 
+	  
+	  if ((int)$query['cond'] < 99) {
+		$sql_where .= ' AND cfc.field_condition_value <= %d';
+		$sql_args[] = $query['cond'];						  
+		$sql_join .= 'LEFT OUTER JOIN {content_field_condition} cfc ON n.vid = cfc.vid ';
+	  }
+	  
+	  if ((int)$query['delivery'] < 99) {
+		$sql_where .= ' AND cfd.field_delivery_value <= %d';
+		$sql_args[] = $query['delivery'];						  
+		$sql_join .= 'LEFT OUTER JOIN {content_field_delivery} cfd ON n.vid = cfd.vid ';
+	  }	  
+	  
+	  if (count($sql_types)) { $sql_where .= ' AND (' . implode(' OR ', $sql_types) . ')'; }
+
+}
+				  
+
+function lv_search_search_form(&$form_state, $searchtype = 'varepartier', $tid = 0, $uid = 0, $squeeze = FALSE) {
+   	drupal_add_js(drupal_get_path('module', 'lv_search').'/lv_search.js');    
+	global $user; 	  
+
+  if (isset($_POST['form_id'])) {
+	$query = $_POST;	
+  } elseif (isset($_GET['form_id'])) {
+	$query = $_GET;	  
+  }
+  
+	if ($query['delete'] && user_access('create e-mail notifications')) {
+	  db_query('DELETE FROM {lv_search} WHERE sid = %d AND uid = %d', $query['sid'], $user->uid);
+	  $query = NULL;
+	}	 
+	elseif ($query['save'] && user_access('create e-mail notifications') && $query['title'] != '') {
+		$record = array(
+			'stype' => $searchtype,
+			'uid' => $user->uid,
+			'title' => $query['title'],
+			'notify_id' => $query['notify_id'],
+			'search_phrase' => $query['search_phrase'],
+			'search_mode' => $query['search_mode'],
+			'is_fixed' => $query['is_fixed'],
+			'is_bargaining' => $query['is_bargaining'],
+			'is_auction' =>	$query['is_auction'],
+			'price_from' =>	$query['price_from'],
+			'price_to' => $query['price_to'],
+			'qty_from' => $query['qty_from'],
+			'qty_to' =>	$query['qty_to'],
+			'cond' => $query['cond'],
+			'delivery' => $query['delivery'],
+			'categories' =>	count($query['c']) != (int)$query['cc'] ? serialize($query['c']) : '',
+			'search_uid' => $uid,	
+		);
+
+		if ((int)$query['sid'] > 0) {		   
+			$record['sid'] = $query['sid'];		
+			drupal_write_record('lv_search', $record, array('sid', 'uid'));                			
+		}
+		else {
+			$record['created'] = time();		
+			drupal_write_record('lv_search', $record);                			
+		}
+	}  
+
+  if ((int)$_GET['sid'] > 0) {	  
+	  if ($result = db_fetch_array(db_query('SELECT * FROM {lv_search} WHERE sid = %d', $_GET['sid']))) {
+		$query = $result;
+	    $query['c'] = unserialize($query['categories']);
+	  }  
+  }	
+
+	  $saved = array(0 => t('New search ...'));
+	  if ($rs = db_query("SELECT sid, title FROM {lv_search} WHERE uid = %d AND stype = '%s' AND search_uid = %d ORDER BY title ASC", $user->uid, $searchtype, $uid)) {
+		  while ($row = db_fetch_array($rs)) {
+			  $saved[$row['sid']] = $row['title'];
+		  }
+	  }
+	  
+	$options = array();	
+	$options_default = array();
+
+	if ($uid > 0) {
+		$result = db_query("SELECT t.tid, t.name, h.parent, COUNT(n.nid) AS c FROM {term_data} t INNER JOIN {term_node} tn ON t.tid = tn.tid INNER JOIN {term_hierarchy} h ON h.tid = t.tid INNER JOIN {node} n ON n.vid = tn.vid WHERE n.status = 1 AND n.uid = %d AND n.type = '%s' GROUP BY t.tid", $uid, $searchtype);	
+		while ($row = db_fetch_array($result)) {
+			$parent = taxonomy_get_term($row['parent']);
+			$options[$parent->name][$row['tid']] = $row['name'] . ' (' . $row['c'] . ')';  
+			$options_default[] = $row['tid'];                  
+		}
+		$options_count = count($options_default);
+	}	    
+	else {
+        $tree = taxonomy_get_tree(4);
+		if ($tree) {
+		    foreach ($tree as $term) {
+				if ($term->parents[0] == 0) {
+					$options[$term->name] = array();
+                    $children = taxonomy_get_children($term->tid);
+                    foreach ($children as $child) {
+						$options[$term->name][$child->tid] = $child->name;  
+						$options_default[] = $child->tid;                  
+                    }
+                }
+		    }
+			$options_count = count($options_default);
+      	}                    
+	}	
+	
+	if ($tid > 0) {			
+		$children = taxonomy_get_children($tid);
+		if (count($children)) {					
+			$options_default = array();
+			foreach ($children as $child) {
+				$options_default[] = $child->tid;					
+			}
+		}
+		else {
+			$options_default = array($tid);		
+		}	
+	}	
+
+	$form = array(
+		'#redirect' => FALSE,
+    	'#theme' => 'lv_search_search_form',		  
+		'table_wrapper' => array(
+			'#title' => t('Search'),
+			'#type' => 'fieldset',
+			'#collapsible' => TRUE,
+			'wrapper_content' => array(
+				'#type' => 'item',
+			),
+		),
+		'squeeze' => array(
+			'#type' => 'value',
+			'#value' => $squeeze,
+		),
+	); 			
+	$form['table_wrapper']['#collapsed'] = isset($query['page']) ? TRUE : FALSE;
+
+ 	if (count($saved) > 1) {
+      $sids = '';
+	  if ($query['sid'] && !$query['delete']) {	
+		$sid_default = $query['sid'];		
+	  }
+	  elseif ($query['save'] && array_search($query['title'], $saved)) {
+		$sid_default = array_search($query['title'], $saved);							
+	  }				
+	  
+	  foreach ($saved as $sid => $value) {
+	  	$sids .= $sid == $sid_default ? '<option selected="selected" value="'.$sid.'">'.$value.'</option>' : '<option value="'.$sid.'">'.$value.'</option>';
+	  }
+
+	  $form['sidcont'] = array(
+		'#type' => 'item',
+		'#value' => '<select name="sid" id="edit-sid">'.$sids.'</select>',
+	  );
+	}
+
+	$form['search_phrase'] = array(
+		'#type' => 'textfield',
+		'#size' => 50,
+		'#maxlength' => 255,	
+		'#default_value' => strlen($query['search_phrase']) ? $query['search_phrase'] : '',
+	);
+	
+	$form['search_mode'] = array(
+	  '#type' => 'radios', 
+	  '#default_value' => isset($query['search_mode']) ? $query['search_mode'] : 0, 
+	  '#options' => array(t('All the words'), t('Any of the words')),	
+	);	  					   
+	
+	$form['is_fixed'] = array(
+	  '#type' => 'checkbox', 
+	  '#title' => t('Fixed price'),				 
+	  '#default_value' => isset($query['is_fixed']) ? $query['is_fixed'] : 1, 	  
+	);	
+	
+	$form['is_bargaining'] = array(
+	  '#type' => 'checkbox', 
+	  '#title' => t('Bargaining'), 
+	  '#default_value' => isset($query['is_bargaining']) ? $query['is_bargaining'] : 1, 	  
+	);	
+	
+	$form['is_auction'] = array(
+	  '#type' => 'checkbox', 
+	  '#title' => t('Auction'),					 
+	  '#default_value' => isset($query['is_auction']) ? $query['is_auction'] : 1, 	  
+	);						
+	
+	$form['price_from'] = array(
+		'#type' => 'textfield',
+		'#size' => 8,
+		'#maxlength' => 8,	
+ 	    '#default_value' => (int)$query['price_from'] > 0 ? $query['price_from'] : '', 		
+	);				
+
+	$form['price_to'] = array(
+		'#type' => 'textfield',
+		'#size' => 8,
+		'#maxlength' => 8,
+ 	    '#default_value' => (int)$query['price_to'] > 0 ? $query['price_to'] : '', 				
+	);	
+
+	if ($searchtype	!= 'consumer') {
+		$form['price_mode'] = array(
+		  '#type' => 'radios', 
+		  '#default_value' => isset($query['price_mode']) ? $query['price_mode'] : 0, 
+		  '#options' => array(t('For whole lot'), t('Per item')),	
+		);	  					   
+	
+		$form['qty_from'] = array(
+			'#type' => 'textfield',
+			'#size' => 8,
+			'#maxlength' => 8,
+ 		    '#default_value' => (int)$query['qty_from'] > 0 ? $query['qty_from'] : '', 				
+		);				
+
+		$form['qty_to'] = array(
+			'#type' => 'textfield',
+			'#size' => 8,
+			'#maxlength' => 8,	   
+	 	    '#default_value' => (int)$query['qty_to'] > 0 ? $query['qty_to'] : '', 				
+		);		
+	}		
+	
+	$form['c'] = array(
+	  '#type' => 'select', 
+	  '#title' => t('Categories'), 
+	  '#default_value' => is_array($query['c']) ? $query['c'] : $options_default,
+	  '#options' => $options,
+	  '#description' => t('Select as many as you want'),	
+	  '#multiple' => TRUE,
+	  '#size' => 10,	  
+	);	
+	
+	$form['cc'] = array(
+	  '#type' => 'hidden', 
+	  '#value' => $options_count,
+	);	  			
+	
+	$form['cond'] = array(
+	  '#type' => 'select', 
+	  '#default_value' => $query['cond'] ? $query['cond'] : 99,
+	  '#options' => array(0 => t('New, original packaging'), 1 => t('New'), 2 => t('As good as new'), 3 => t('Slightly used'), 4 => t('Used'), 5 => t('Worn'), 6 => t('Defect'), 99 => t('Condition unknown')),
+	);						 
+	
+	$form['delivery'] = array(
+	  '#type' => 'select', 
+	  '#default_value' => $query['delivery'] ? $query['delivery'] : 99,
+	  '#options' => array(0 => t('In stock'), 1 => t('1-3 days'), 2 => t('1-7 days'), 3 => t('1-2 weeks'), 4 => t('1-3 weeks'), 5 => t('More than 1 month'), 99 => t('More than 3 months')),
+	); 	  
+
+	$form['submit'] = array(
+		'#type' => 'submit',
+       	'#name' => 'search',                    
+		'#value' => t('Search'),
+	);		
+	
+	if (user_access('create e-mail notifications') && ($query['form_id'] || $query['sid'])) {					   
+		$form['title'] = array(
+			'#type' => 'textfield',
+			'#maxlength' => 100,	
+			'#size' => $squeeze ? 30 : 60,
+			'#default_value' => $query['title'],
+		);			
+	
+		$form['notify_id'] = array(
+		  '#type' => 'radios', 
+		  '#default_value' => isset($query['notify_id']) ? $query['notify_id'] : 0, 
+		  '#options' => array(0 => t('Never'), 1 => t('Immediately'), 2 => t('Once a day'), 3 => t('Once a week'), 4 => t('Once a month')),	
+		);		
+
+		$form['save'] = array(
+			'#type' => 'submit',
+   			'#name' => 'save',                    
+			'#value' => t('Save search'),
+		);			 
+		
+		if ($query['sid']) {
+			$form['delete'] = array(
+				'#type' => 'submit',
+   				'#name' => 'delete',                    
+				'#value' => t('Delete search'),
+			);			 		
+		}
+	}		
+
+   	return $form; 
+}  
+
+function theme_lv_search_search_form($form) {
+	$result = '';
+
+	$squeeze = $form['squeeze']['#value'];
+	unset($form['squeeze']);
+	
+	if (isset($form['sidcont'])) {
+		$result .= '<div class="lv-search-agent"><table><tr>
+						<th>'.t('Saved searches:').'</th>
+						<td>'.$form['sidcont']['#value'].'</td>';
+						if (isset($form['delete'])) {
+							$result .= '<td>&nbsp;&nbsp;' . drupal_render($form['delete']) . '</td>';
+						}						
+		$result .=		'</tr></table></div>';
+	}	
+
+	$result .= '<table class="lv-search"><tr><td class="lv-search-left">
+						<table>
+							<tr>
+								<th valign="top">'.t('Search terms:').'</th>
+								<td>'.drupal_render($form['search_phrase']).'<br />'.drupal_render($form['search_mode']).'</td>
+							</tr>
+						</table>							  
+				</td>';
+	if (!$squeeze) {
+		$result .= '<td rowspan="6" valign="top" class="lv-search-right">' . drupal_render($form['c']) . '</td>';
+	}		
+	$result .= 	'</tr>
+					<tr><td class="lv-search-left">
+					<table>				
+						<tr>
+							<th>'.t('Sale method:').'</th>
+							<td>' . drupal_render($form['is_fixed']) . drupal_render($form['is_bargaining']) . drupal_render($form['is_auction']) . '</td>
+						</tr> 
+					</table>						
+					</td></tr>
+					<tr><td class="lv-search-left">
+					<table>					
+						<tr>
+							<th valign="top">'.t('Price:').'</th>						
+							<td>' . drupal_render($form['price_from']) . '<div class="form-item">&nbsp;-&nbsp;</div>' . drupal_render($form['price_to']);
+		if (isset($form['price_mode'])) {
+		 	$result .= '<br />' . drupal_render($form['price_mode']);
+		}							
+							
+		$result .= '</td></tr>
+							</table>						
+					</td></tr>';
+
+		if (isset($form['qty_from'])) {
+			$result .= '<tr><td class="lv-search-left">
+						<table>					
+						<tr>
+							<th>'.t('Item quantity:').'</th>								
+							<td>' . drupal_render($form['qty_from']) . '<div class="form-item">&nbsp;-&nbsp;</div>' . drupal_render($form['qty_to']) . '</td>					
+						</tr></table></td></tr>';
+		}								 
+		
+		$result .= '	<tr><td class="lv-search-left">
+						<table>	
+						<tr>
+							<th>'.t('Min. condition:').'</th>
+							<td>' . drupal_render($form['cond']) . '</td>
+						</tr>							
+						</table>
+						</td></tr>
+						<tr><td class="lv-search-left">
+						<table>													
+						<tr>
+							<th>'.t('Max. delivery:').'</th>
+							<td>' . drupal_render($form['delivery']) . '</td>
+						</tr>
+					</table>
+					</td></tr>';
+
+	if ($squeeze) {
+		$c_desc = $form['c']['#description'];
+		unset($form['c']['#title']);		 
+		unset($form['c']['#description']);
+			$result .= '<tr><td class="lv-search-left"><table>	
+						<tr>
+							<th valign="top" rowspan="2">'.t('Categories:').'</th>
+							<td rowspan="2">' . drupal_render($form['c']) . '</td>
+							<td valign="top" height="100%">' . $c_desc . '</td>
+						</tr>
+						<tr>
+							<td align="right">' . drupal_render($form['submit']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']) . drupal_render($form['cc']) . '</td>
+						</tr>							
+						</table></td></tr></table>';
+	}		
+	else {
+		$result .= '</table><div class="lv-search-button">' . drupal_render($form['submit']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']) . drupal_render($form['cc']) . '</div>';																							
+	}
+						
+	 if (isset($form['title'])) {
+		 $result .= '<div class="lv-search-agent">
+
+						<div class="lv-search-agent-right">' . drupal_render($form['save']);
+		$result .= '	</div>';
+		
+		$result .=		'<div class="lv-search-agent-left"><table>
+							<tr>
+								<th>'.t('Save this search as:').'</th>
+								<td>' . drupal_render($form['title']) . '</td>
+							</tr>
+							<tr>
+								<th colspan="2">'.t('E-mail me about new products that matches my search:').'</th>
+							</tr>	
+							<tr>
+								<td colspan="2">' . drupal_render($form['notify_id']) . '</td>							
+							</tr>															  
+						</table></div>
+						
+
+					</div><div style="clear: both;"></div>';													
+
+	}
+	
+	$form['table_wrapper']['wrapper_content']['#value'] = $result;
+	return drupal_render($form['table_wrapper']);	
+}
+
+function lv_search_get_query() {
+	  $query = FALSE;
+
+	  if (isset($_POST['form_id'])) {
+		$query = $_POST;	 
+	  } elseif (isset($_GET['form_id'])) {
+		$query = $_GET;	  
+	  }	elseif ((int)$_GET['sid'] > 0) {	  
+		  if ($result = db_fetch_array(db_query('SELECT * FROM {lv_search} WHERE sid = %d', $_GET['sid']))) {
+			$query = $result;
+		    $query['c'] = unserialize($query['categories']);
+			unset($query['categories']);
+			$query['cc'] = 10000;
+		  }  
+	  }				 
+
+	  return $query;
+}
+
+  
+function lv_search_search_form_validate($form, &$form_state) {
+	global $user;
+
+	if ($form_state['clicked_button']['#name'] != 'delete') {
+		if (!$form_state['values']['is_fixed'] && !$form_state['values']['is_bargaining'] && !$form_state['values']['is_auction']) {
+			form_set_error('is_fixed', t('You must select at least one lot type.'));	
+		}																				
+		if ($form_state['values']['price_from'] && (!is_numeric($form_state['values']['price_from']) || $form_state['values']['price_from'] < 0)) {
+			form_set_error('price_from', t('Minimum price must be a rounded positive number or be left blank.'));		
+		}
+		if ($form_state['values']['price_to'] && (!is_numeric($form_state['values']['price_to']) || $form_state['values']['price_to'] < 0)) {
+			form_set_error('price_to', t('Maximum price must be a rounded positive number or be left blank.'));		
+		}
+		if ($form_state['values']['qty_from'] && (!is_numeric($form_state['values']['qty_from']) || $form_state['values']['qty_from'] < 0)) {
+			form_set_error('qty_from', t('Minimum quantity must be a rounded positive number or be left blank.'));		
+		}		
+		if ($form_state['values']['qty_to'] && (!is_numeric($form_state['values']['qty_to']) || $form_state['values']['qty_to'] < 0)) {
+			form_set_error('qty_to', t('Maximum quantity must be a rounded positive number or be left blank.'));		
+		}	
+	}		
+	
+	if ($form_state['clicked_button']['#name'] == 'save') {
+		if ($form_state['values']['title'] == '') {
+			form_set_error('title', t('You must choose a title for your search.'));									
+		}
+	}					  								   
+}	
+

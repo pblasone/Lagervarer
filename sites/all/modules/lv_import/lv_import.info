@@ -1,0 +1,7 @@
+; $Id$
+name = LV Import
+description = Module for importing product listings
+core = 6.x
+package = "Lagervarer"
+
+

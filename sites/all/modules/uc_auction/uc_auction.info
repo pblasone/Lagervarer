@@ -1,0 +1,12 @@
+; $Id: uc_auction.info,v 1.1.2.19 2009/03/20 17:00:16 garrettalbright Exp $
+name = Auction
+description = Allow products to be auctioned.
+dependencies[] = uc_product
+core = 6.x
+package = "Ubercart - extra"
+; Information added by drupal.org packaging script on 2009-04-01
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "uc_auction"
+datestamp = "1238545378"
+

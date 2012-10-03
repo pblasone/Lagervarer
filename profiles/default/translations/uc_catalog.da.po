@@ -1,0 +1,762 @@
+# Danish translation of ubercart (all releases)
+# Copyright (c) 2009 by the Danish translation team
+# Generated from files:
+#  n/a
+#  ubercart/uc_catalog/uc_catalog.module: n/a
+#  uc_catalog.module,v 1.14.2.13 2008/07/29 22:22:43 rszrama
+#  uc_catalog.module,v 1.14.2.14 2008/09/17 21:38:40 rszrama
+#  uc_catalog.module,v 1.14.2.15 2008/11/03 21:26:35 rszrama
+#  uc_catalog.module,v 1.15.2.11 2008/12/11 15:53:50 islandusurper
+#  uc_catalog.module,v 1.14.2.16 2009/01/16 22:12:37 rszrama
+#  uc_catalog.module,v 1.15.2.13 2009/01/19 20:31:25 islandusurper
+#  uc_catalog.module,v 1.15.2.12 2009/01/02 20:18:42 islandusurper
+#  uc_catalog.module,v 1.15.2.14 2009/02/04 13:44:30 islandusurper
+#  uc_catalog.module,v 1.15.2.15 2009/02/24 15:35:50 islandusurper
+#  ubercart/uc_catalog/uc_catalog.install: n/a
+#  uc_catalog.install,v 1.8.2.10 2008/07/29 22:22:43 rszrama
+#  uc_catalog.install,v 1.9.2.6 2008/12/11 15:53:50 islandusurper
+#  uc_catalog.install,v 1.9.2.7 2009/01/19 20:31:25 islandusurper
+#  uc_catalog.install,v 1.9.2.8 2009/02/04 13:44:30 islandusurper
+#  ubercart/uc_catalog/uc_catalog.info: n/a
+#  uc_catalog.info,v 1.5.2.1 2008/07/29 22:22:43 rszrama
+#  uc_catalog.info,v 1.6.2.2 2008/11/07 21:13:24 islandusurper
+#  uc_catalog.admin.inc,v 1.1.2.5 2008/11/21 21:17:26 islandusurper
+#  uc_catalog.admin.inc,v 1.1.2.7 2009/01/19 20:31:25 islandusurper
+#  uc_catalog.admin.inc,v 1.1.2.6 2009/01/02 20:18:42 islandusurper
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: ubercart (all releases)\n"
+"POT-Creation-Date: 2009-04-18 22:02+0200\n"
+"PO-Revision-Date: 2009-04-18 23:41+0100\n"
+"Language-Team: Danish\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"Last-Translator: Patrick Blasone <patrick@blasone.dk>\n"
+
+#: uc_catalog/uc_catalog.module:77,420,77,564,77,573,77,573,77,573,77,573,76,577,76,579,76,553,76,553,76,556,76,551,76,550,76,550,76,550,76,550,76,559,75,76,559,73,97,73,97,73,97,73,97,73,97
+msgid "Catalog settings"
+msgstr "Katalogindstillinger"
+
+#: uc_catalog/uc_catalog.module:94,115,116,116,116,116,115,115,109,109,109,109,109,109,109,109,109,115,109,113,113,113,113,113
+msgid "Find orphaned products"
+msgstr "Find produkter uden for kategori"
+
+#: uc_catalog/uc_catalog.module:97,118,119,119,119,119,118,118,112,112,112,112,112,112,112,112,112,116,112,114,114,114,114,114
+msgid "Find products that have not been categorized."
+msgstr "Find produkter, der ikke er kategoriseret."
+
+#: uc_catalog/uc_catalog.module:104,125,126,126,126,126,125,125,119,119,119,119,119,119,119,119,119,119
+msgid "Move products"
+msgstr "Flyt produkter"
+
+#: uc_catalog/uc_catalog.module:261,303,304,304,304,304,306,307,300,300,300,300,300,300,300,300,300,350,300,350,350,345,345,345
+msgid "Term image"
+msgstr "Kategoribillede"
+
+#: uc_catalog/uc_catalog.module:264,306,307,307,307,307,309,311,304,304,304,304,304,304,304,304,304,354,304,354,354,349,349,349
+msgid "Remove category image: !image"
+msgstr "Fjern kategoribillede: !image"
+
+#: uc_catalog/uc_catalog.module:357,501,510,510,510,510,514,516,490,490,493,493,493,493,493,493,493,493
+msgid "Vocabulary !name has been identified as the !uber catalog."
+msgstr "Ordforrådet !name er valgt som !uber's katalog."
+
+#: uc_catalog/uc_catalog.module:364,371
+msgid "Unlisted Products"
+msgstr "Uoplistede produkter"
+
+#: uc_catalog/uc_catalog.module:366,510,519,519,519,519,523,525,499,499,502,502,502,502,502,502
+msgid " Products are listed by assigning a category from the Product Catalog vocabulary to them. "
+msgstr "Produkterne oplistes ved at tildele dem en kategori fra Produktkatalog-ordforrådet."
+
+#: uc_catalog/uc_catalog.module:367,511,520,520,520,520,524,526,500,500,503,503,503,503,503,503,504,550,504,551,548,546,546,546
+msgid "Find orphaned products here."
+msgstr "Find produkter uden kategori her."
+
+#: uc_catalog/uc_catalog.module:379,523,532,532,532,532,536,538,512,512,515,510
+msgid "No vocabulary has been recognized as the !uber catalog. Click "
+msgstr "Intet ordforråd er valgt som !uber's katalog. Klik"
+
+#: uc_catalog/uc_catalog.module:380,524,533,533,533,533,537,539,513,513,516,511
+msgid "here"
+msgstr "her"
+
+#: uc_catalog/uc_catalog.module:380,524,533,533,533,533,537,539,513,513,516,511
+msgid " to set one up"
+msgstr " for at sætte et op"
+
+#: uc_catalog/uc_catalog.module:422,566,575,575,575,575,579,581,555,555,558,553,552,552,552,552,561,561
+msgid "The catalog vocabulary id is !vid."
+msgstr "Katalogets ordforråd er !vid."
+
+#: uc_catalog/uc_catalog.module:424,568,577,577,577,577,581,583,557,557,560,555,554,554,554,554,563,563
+msgid "The base URL pointing to the catalog is !url."
+msgstr "Base URL'en, der peger på kataloget er !url."
+
+#: uc_catalog/uc_catalog.module:427,571,580,580,580,580,584,586,560,560,563,558,557,557,557,557,566,566
+msgid "The catalog breadcrumb will be shown."
+msgstr "Katalogets breadcrumb vil blive vist."
+
+#: uc_catalog/uc_catalog.module:428,572,581,581,581,581,585,587,561,561,564,559,558,558,558,558,567,567
+msgid "The catalog breadcrumb will not be shown."
+msgstr "Katalogets breadcrumb vil ikke blive vist."
+
+#: uc_catalog/uc_catalog.module:430,622,631,631,631,631,635,637,611,611,601,596,595,595,595,595,604,604
+msgid "The number of nodes in a category will be shown in the catalog block."
+msgstr "Antallet af noder i en kategori vil blive vist i katalog-blokken."
+
+#: uc_catalog/uc_catalog.module:431,623,632,632,632,632,636,638,612,612,602,597,596,596,596,596,605,605
+msgid "The number of nodes in a category will not be shown in the catalog block."
+msgstr "Antallet af noder i en kategori vil ikke blive vist i katalog-blokken."
+
+#: uc_catalog/uc_catalog.module:433,574,583,583,583,583,587,589,563,563,566,561,560,560,560,560,569,569
+msgid "The number of nodes in a category will be shown in the catalog breadcrumb."
+msgstr "Antallet af noder i en kategori vil blive vist i katalogets breadcrumb."
+
+#: uc_catalog/uc_catalog.module:434,575,584,584,584,584,588,590,564,564,567,562,561,561,561,561,570,570
+msgid "The number of nodes in a category will not be shown in the catalog breadcrumb."
+msgstr "Antallet af noder i en kategori vil ikke blive vist i katalogets breadcrumb."
+
+#: uc_catalog/uc_catalog.module:436,625,634,634,634,634,638,640,614,614,604,599,598,598,598,598,607,607
+msgid "Subcategories with no products to display will be shown on category pages."
+msgstr "Underkategorier uden produkter at vise vil blive vist på kategorisider."
+
+#: uc_catalog/uc_catalog.module:437,626,635,635,635,635,639,641,615,615,605,600,599,599,599,599,608,608
+msgid "Subcategories with no products to display will not be shown on category pages."
+msgstr "Underkategorier uden produkter at vise vil ikke blive vist på kategorisider."
+
+#: uc_catalog/uc_catalog.module:439,628,637,637,637,637,641,643,617,617,607,602,601,601,601,601,610,610
+msgid "Categories in the catalog block will always be expanded."
+msgstr "Kategorier i katalog-blokken vil altid være foldet ud."
+
+#: uc_catalog/uc_catalog.module:440
+msgid "Categories in the catalog block will be expanded if selected."
+msgstr "Kategoier i katalog-blokken vil være foldet ud, hvis de er valgt."
+
+#: uc_catalog/uc_catalog.module:441
+msgid "Subcategores will be displayed in %num columns."
+msgstr "Underkategorier vil blive vist i %num kolonner."
+
+#: uc_catalog/uc_catalog.module:459,659,668,668,668,668,672,674,648,648,626,621,620,620,620,620,629,629
+msgid "Vocabulary %name is set as the product catalog. "
+msgstr "Ordforrådet %name er valgt som produktkatalog."
+
+#: uc_catalog/uc_catalog.module:502
+msgid "New Category"
+msgstr "Ny kategori"
+
+#: uc_catalog/uc_catalog.module:505,525,731,751,740,760,740,760,740,760,740,760,744,764,746,766,720,740,720,740,698,718,693,713,692,712,692,712,692,712,692,712,701,721,701,721
+msgid "Move"
+msgstr "Flyt"
+
+#: uc_catalog/uc_catalog.module:508,734,743,743,743,743,747,749,723,723,701,696,695,695,695,695,704,704
+msgid "Copy"
+msgstr "Kopiér"
+
+#: uc_catalog/uc_catalog.module:758
+msgid "Catalog Vocabulary"
+msgstr "Katalog-ordforråd"
+
+#: uc_catalog/uc_catalog.module:765
+msgid "Catalog URL"
+msgstr "Katalog-URL"
+
+#: uc_catalog/uc_catalog.module:766
+msgid "The path to the root of the catalog vocabulary. Do not include a trailing slash."
+msgstr "Stien til roden af katalog-ordforrådet. Udelad skråstreg for enden."
+
+#: uc_catalog/uc_catalog.module:771
+msgid "Display catalog breadcrumb"
+msgstr "Vis katalogets breadcrumb"
+
+#: uc_catalog/uc_catalog.module:776
+msgid "Display node counts in Catalog Block"
+msgstr "Vis nodeantal i katalog-blokken."
+
+#: uc_catalog/uc_catalog.module:781
+msgid "Display node counts in Catalog Breadcrumb"
+msgstr "Vis nodeantal i katalogets breadcrumb"
+
+#: uc_catalog/uc_catalog.module:786
+msgid "Display subcategories in catalog view"
+msgstr "Vis underkategorier i katalogvisning"
+
+#: uc_catalog/uc_catalog.module:790
+msgid "Always expand categories in catalog block"
+msgstr "Fold altid kategorier i katalogblokken ud"
+
+#: uc_catalog/uc_catalog.module:847,1452,1461,1461,1461,1496,1487,1492
+msgid ""
+"Orphaned products are products that you have created but \n"
+"     not yet assigned to a category in your product catalog. All such \n"
+"     products will appear as links below that you can follow to edit \n"
+"     the product listings to assign them to categories."
+msgstr ""
+"Produkter uden kategori er produkter, som du har oprettet, men \n"
+"endnu ikke tildelt en kategori i dit produktkatalog. Sådanne \n"
+"produkter vil nedenfor blive vist som links, som du kan følge for at \n"
+"redigere i produkterne og tildele dem kategorier."
+
+#: uc_catalog/uc_catalog.module:365,509,518,518,518,518,522
+msgid "There is 1 product not listed in the catalog."
+msgid_plural "There are @count products not listed in the catalog."
+msgstr[0] "Der er 1 produkt, som ikke er oplistet i kataloget."
+msgstr[1] "Der er @count produkter, som ikke er oplistet i kataloget."
+
+#: uc_catalog/uc_catalog.module:120,141,142,142,142,142,141,141,135,135,135,135,135,135,135,135,135,131,135,129,129,129,129,129
+msgid "administer catalog"
+msgstr "administrér katalog"
+
+#: uc_catalog/uc_catalog.module:0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+msgid "uc_catalog"
+msgstr "uc_catalog"
+
+#: uc_catalog/uc_catalog.install:13,13
+msgid "Categories for organizing products by type or function."
+msgstr "Kategorier"
+
+#: uc_catalog/uc_catalog.install:13,13,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,66,14,66,66,66,66,66
+msgid "Hold Ctrl while clicking to select multiple categories."
+msgstr "Hold Ctrl-tasten nede for at vælge flere kategorier."
+
+#: uc_catalog/uc_catalog.info:0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+msgid "Display a hierarchical product catalog page and block."
+msgstr "Vis en hierarkisk inddelt produktkatalogside og -blok."
+
+#: uc_catalog/uc_catalog.module:102,103,103,103,103,102,102,102,102,102,102,102,102,102,102,102,102
+msgid "Grid"
+msgstr "Matrix"
+
+#: uc_catalog/uc_catalog.module:109,110,110,110,110,109,109
+msgid "Blocks"
+msgstr "Blokke"
+
+#: uc_catalog/uc_catalog.module:311,312,312,312,312,314,316,309,309,309,309,309,309,309,309,309,359,309,359,359,354,354,354
+msgid "A description of the term. Displayed to customers at the top of catalog pages."
+msgstr "En beskrivelse af begrebet. Vises til kunderne i toppen af katalogsider."
+
+#: uc_catalog/uc_catalog.module:342,631,1338,343,640,1347,343,640,1347,343,640,1347,343,640,1382,345,644,1373,347,646,1378,620,620
+msgid "Visual catalog"
+msgstr "Visuelt katalog"
+
+#: uc_catalog/uc_catalog.module:343,633,1353,344,642,1362,344,642,1362,344,642,1362,344,642,1397,346,646,1388,348,648,1393,622,622
+msgid "Special offers"
+msgstr "Særtilbud"
+
+#: uc_catalog/uc_catalog.module:344,638,345,647,345,647,345,647,345,647,347,651,349,653,627,627
+msgid "Best sellers"
+msgstr "Topsælgere"
+
+#: uc_catalog/uc_catalog.module:427,432,432,432,432,436,438,412,412,415,415,415,415,415,415,415,462,415,460,460,455,455,455
+msgid "Catalog path settings"
+msgstr "Indstillinger for katalogsti"
+
+#: uc_catalog/uc_catalog.module:428,433,433,433,433,437,439,413,413,416,416,416,416,416,416,416,463,416,461,461,456,456,456
+msgid "Pattern for catalog pages"
+msgstr "Mønster for katalogsider"
+
+#: uc_catalog/uc_catalog.module:429,434,434,434,434,438,440,414,414,417,417,417,417,417,417,417,464,417,462,462,457,457,457
+msgid "catalog/[catpath-raw]"
+msgstr "katalog/[catpath-raw]"
+
+#: uc_catalog/uc_catalog.module:439,444,444,444,444,448,450,424,424,427,427,427,427,427,427,427,474,427,472,472,467,467,467
+msgid "Bulk generate aliases for catalog pages that are not aliased"
+msgstr "Massegenerér aliaser til katalogsider, der ikke har alias"
+
+#: uc_catalog/uc_catalog.module:440,445,445,445,445,449,451,425,425,428,428,428,428,428,428,428,475,428,473,473,468,468,468
+msgid "Generate aliases for all existing catalog pages which do not already have aliases. Note: Bulk Update may not complete on large or slow sites. See the README.txt for more information."
+msgstr "Generér aliaser til alle eksisterende katalogsider, som ikke allerede har aliaser. Bemærk: Masseopdatering kan måske ikke gennemføres på meget store eller langsomme sites. Se README.txt for mere information."
+
+#: uc_catalog/uc_catalog.module:508,515,517,524,517,524,517,524,517,524,521,528,523,530,497,504,497,504,500,507,500,500,500,500,500,511,557,511,558,555,553,553,553
+msgid "Unlisted products"
+msgstr "Uoplistede produkter"
+
+#: uc_catalog/uc_catalog.module:578,587,587,587,587,591,593,567,567
+msgid "The catalog page will display the Special Offers block at bottom."
+msgstr "Katalogsiden vil blive vist med Særtilbud-blokken i bunden."
+
+#: uc_catalog/uc_catalog.module:579,588,588,588,588,592,594,568,568
+msgid "The catalog page will not display any Special Offers block at bottom."
+msgstr "Katalogsiden vil ikke blive vist med en Særtilbud-blok i bunden."
+
+#: uc_catalog/uc_catalog.module:582,591,591,591,591,595,597,571,571
+msgid "The catalog page will display the Best Sellers products block at bottom."
+msgstr "Katalogsiden vil blive vist med Topsælgere-blokken i bunden."
+
+#: uc_catalog/uc_catalog.module:583,592,592,592,592,596,598,572,572
+msgid "The catalog page will not display any Best Sellers products block at bottom."
+msgstr "Katalogsiden vil ikke blive vist med en Topsælgere-blok i bunden."
+
+#: uc_catalog/uc_catalog.module:586,595,595,595,595,599,601,575,575
+msgid "The catalog page will display the Consult Form block at bottom."
+msgstr "Katalogsiden vil blive vist med Konsultationsformular-blokken i bunden."
+
+#: uc_catalog/uc_catalog.module:587,596,596,596,596,600,602,576,576
+msgid "The catalog page will not display any Consult Form block at bottom."
+msgstr "Katalogsiden vil ikke blive vist med en Konsultationsformular-blok i bunden."
+
+#: uc_catalog/uc_catalog.module:588,597,597,597,597,601,603,577,577
+msgid "The base URL pointing to the Consult Form is !url."
+msgstr "Base URL'en, der peger på Konsultationsformularen, er !url."
+
+#: uc_catalog/uc_catalog.module:594,603,603,603,603,607,609,583,583,573,568,567,567,567,567,576,576
+msgid "Products grid settings"
+msgstr "Indstillinger for produktmatrix"
+
+#: uc_catalog/uc_catalog.module:597,606,606,606,606,610,612,586,586,576,571,570,570,570,570,579,579
+msgid "The catalog will be displayed on a grid."
+msgstr "Kataloget vil blive vist som et matrix."
+
+#: uc_catalog/uc_catalog.module:598,607,607,607,607,611,613,587,587,577,572,571,571,571,571,580,580
+msgid "The catalog will be displayed on a table list."
+msgstr "Kataloget vil blive vist i en tabelliste."
+
+#: uc_catalog/uc_catalog.module:601,610,610,610,610,614,616,590,590,580,575,574,574,574,574,583,583
+msgid "Every cell on the grid will display the Product Title."
+msgstr "Hver celle i matrixet vil blive vist med produkttitlen."
+
+#: uc_catalog/uc_catalog.module:602,611,611,611,611,615,617,591,591,581,576,575,575,575,575,584,584
+msgid "Cells on the grid will not display Product Titles."
+msgstr "Celler i matrixet vil ikke blive vist med produkttitler."
+
+#: uc_catalog/uc_catalog.module:604,613,613,613,613,617,619,593,593,583,578,577,577,577,577,586,586
+msgid "Every cell on the grid will display the Product SKU."
+msgstr "Hver celle i matrixet vil blive vist med varenummer."
+
+#: uc_catalog/uc_catalog.module:605,614,614,614,614,618,620,594,594,584,579,578,578,578,578,587,587
+msgid "Cells on the grid will not display Product SKU."
+msgstr "Celler i matrixet vil ikke blive vist med varenummer."
+
+#: uc_catalog/uc_catalog.module:607,616,616,616,616,620,622,596,596,586,581,580,580,580,580,589,589
+msgid "Every cell on the grid will display the Product Selling Price."
+msgstr "Hver celle i matrixet vil blive vist med produktets salgspris."
+
+#: uc_catalog/uc_catalog.module:608,617,617,617,617,621,623,597,597,587,582,581,581,581,581,590,590
+msgid "Cells on the grid will not display Product Selling Prices."
+msgstr "Celler i matrixet vil ikke blive vist med produktets salgspris."
+
+#: uc_catalog/uc_catalog.module:610,619,619,619,619,623,625,599,599,589,584,583,583,583,583,592,592
+msgid "Every cell on the grid will display the Add to Cart button."
+msgstr "Hver celle i matrixet vil blive vist med \"Læg i kurv\"-knappen."
+
+#: uc_catalog/uc_catalog.module:611,620,620,620,620,624,626,600,600,590,585,584,584,584,584,593,593
+msgid "Cells on the grid will not display Add to Cart buttons."
+msgstr "Celler i matrixet vil ikke blive vist med \"Læg i kurv\"-knapper."
+
+#: uc_catalog/uc_catalog.module:613,622,622,622,622,626,628,602,602,592,587,586,586,586,586,595,595
+msgid "Every cell on the grid will display Product Attibutes."
+msgstr "Hver celle i matrixet vil blive vist med tilpasningsmuligheder."
+
+#: uc_catalog/uc_catalog.module:614,623,623,623,623,627,629,603,603,593,588,587,587,587,587,596,596
+msgid "Cells on the grid will not display Product Attibutes."
+msgstr "Celler i matrixet vil ikke blive vist med tilpasningsmuligheder."
+
+#: uc_catalog/uc_catalog.module:629,638,638,638,638,642,644,618,618,608,603,602,602,602,602,611,611
+msgid "Categories in the catalog block will be expanded only when selected."
+msgstr "Kategorier i katalogblokken vil først foldes ud, når de bliver valgt."
+
+#: uc_catalog/uc_catalog.module:630,639,639,639,639,643,645,619,619
+msgid "The title for the \"Visual catalog\" block is %name."
+msgstr "\"Visual catalog\"-blokkens titel er %name."
+
+#: uc_catalog/uc_catalog.module:632,641,641,641,641,645,647,621,621
+msgid "The title for the \"Special offers\" block is %name."
+msgstr "\"Særtilbud\"-blokkens titel er %name."
+
+#: uc_catalog/uc_catalog.module:635,644,644,644,644,648,650,624,624
+msgid "Help text below the \"Special offers\" block is displayed."
+msgstr "Hjælpeteksten under \"Særtilbud\"-blokken vises."
+
+#: uc_catalog/uc_catalog.module:636,645,645,645,645,649,651,625,625
+msgid "Help text below the \"Special offers\" block is not displayed."
+msgstr "Hjælpeteksten under \"Særtilbud\"-blokken vises ikke."
+
+#: uc_catalog/uc_catalog.module:637,646,646,646,646,650,652,626,626
+msgid "The title for the \"Best sellers\" block is %name."
+msgstr "\"Topsælgere\"-blokkens titel er %name."
+
+#: uc_catalog/uc_catalog.module:640,649,649,649,649,653,655,629,629
+msgid "Help text below the \"Best sellers\" block is displayed."
+msgstr "Hjælpeteksten under \"Topsælgere\"-blokken vises."
+
+#: uc_catalog/uc_catalog.module:641,650,650,650,650,654,656,630,630
+msgid "Help text below the \"Best sellers\" block is not displayed."
+msgstr "Hjælpeteksten under \"Topsælgere\"-blokken vises ikke."
+
+#: uc_catalog/uc_catalog.module:728,737,737,737,737,741,743,717,717,695,690,689,689,689,689,698,698
+msgid "New category"
+msgstr "Ny kategori"
+
+#: uc_catalog/uc_catalog.module:971,980,980,980,998,1002,1007
+msgid "Can't find what you are looking for?"
+msgstr "Fandt du ikke, hvad du søgte?"
+
+#: uc_catalog/uc_catalog.module:971,980,980,980,998,1002,1007
+msgid "Contact us!"
+msgstr "Kontakt os!"
+
+#: uc_catalog/uc_catalog.module:1004,1013,1013,1013,1048,1036,1041
+msgid "Special Offers"
+msgstr "Særtilbud"
+
+#: uc_catalog/uc_catalog.module:1007,1366,1016,1375,1016,1375,1016,1375,1051,1410,1039,1401,1044,1406
+msgid "We're always looking for new ways to bring our products to the broadest audience. Here are our special offers for this month."
+msgstr "Vi er altid på udkig efter nye måder at få vores produkter ud til det bredest mulige publikum. Her er vores særtilbud for denne måned."
+
+#: uc_catalog/uc_catalog.module:1039,1381,1048,1390,1048,1390,1048,1390,1083,1425,1072,1416,1077,1421
+msgid "Best Sellers"
+msgstr "Topsælgere"
+
+#: uc_catalog/uc_catalog.module:1042,1394,1051,1403,1051,1403,1051,1403,1086,1438,1075,1429,1080,1434
+msgid "So many people can't be wrong. These products have been ordered the most."
+msgstr "Så mange mennesker kan ikke tage fejl. Disse produkter er vores mest solgte."
+
+#: uc_catalog/uc_catalog.module:1060,1069,1069,1069,1104,1093,1098,981,981,957,952,951,951,951,951,960,676,960,677,674,672,672,672
+msgid "No products are available in this category."
+msgstr "Der er desværre ingen produkter i denne kategori."
+
+#: uc_catalog/uc_catalog.module:1159,1168,1168,1168,1203,1194,1199
+msgid "Display node counts in thecatalog breadcrumb"
+msgstr "Vis nodeantal i katalogets breadcrumb"
+
+#: uc_catalog/uc_catalog.module:1173,1182,1182,1182,1217,1208,1213
+msgid "Catalog bottom blocks"
+msgstr "Blokke til bunden af kataloget"
+
+#: uc_catalog/uc_catalog.module:1180,1189,1189,1189,1224,1215,1220
+msgid "Display \"Special offers\" block at bottom"
+msgstr "Vis \"Særtilbud\"-blokken i bunden"
+
+#: uc_catalog/uc_catalog.module:1183,1192,1192,1192,1227,1218,1223
+msgid "Displays products marked as \"Sticky\" in the node publication area."
+msgstr "Vis produkter mærket som \"Altid øverst\" i nodeudgivelses-området."
+
+#: uc_catalog/uc_catalog.module:1186,1199,1195,1208,1195,1208,1195,1208,1230,1243,1221,1234,1226,1239
+msgid "Number of lines"
+msgstr "Antal linjer"
+
+#: uc_catalog/uc_catalog.module:1190,1199,1199,1199,1234,1225,1230
+msgid "Number of lines in \"Special offer\" block if grid view selected."
+msgstr "Antal linjer i \"Særtilbud\"-blokken, hvis matrix-visning er valgt."
+
+#: uc_catalog/uc_catalog.module:1193,1202,1202,1202,1237,1228,1233
+msgid "Display \"Best sellers\" block at bottom"
+msgstr "Vis \"Topsælgere\"-blokken i bunden"
+
+#: uc_catalog/uc_catalog.module:1196,1205,1205,1205,1240,1231,1236
+msgid "Displays products that have been ordered the most."
+msgstr "Vis produkter, der er bestilt flest gange."
+
+#: uc_catalog/uc_catalog.module:1203,1212,1212,1212,1247,1238,1243
+msgid "Number of lines in best sellers products block if grid view selected."
+msgstr "Antal linjer i topsælgere-produktblokken, hvis matrix-visning er valgt."
+
+#: uc_catalog/uc_catalog.module:1206,1215,1215,1215,1250,1241,1246
+msgid "Display link to catalog consult form at bottom"
+msgstr "Vis link til katalogets konsultationsformular i bunden"
+
+#: uc_catalog/uc_catalog.module:1209,1218,1218,1218,1253,1244,1249
+msgid "These products appear on that block when the site has some purchases available. Beware that if there are not products on orders no products may appear which means an empty block with a non available data message."
+msgstr "Disse produkter vises i den blok, når sitet har nogle køb til rådighed. Vær opmærksom på, at hvis der ikke er nogen ordrer med produkter, vises der måske ingen produkter, hvilket resulterer i en tom blok med besked om, at der ikke er nogen data tilgængelig."
+
+#: uc_catalog/uc_catalog.module:1212,1221,1221,1221,1256,1247,1252
+msgid "More information form URL"
+msgstr "URL til formular for mere information"
+
+#: uc_catalog/uc_catalog.module:1213,1222,1222,1222,1257,1248,1253
+msgid "The path to the page with a form you could have created to handle consults about products. Do not include a trailing slash."
+msgstr "Stien til den side med en formular, som du kan have lavet til at håndtere forespørgsler omkring produkter. Undlad skråstreg for enden."
+
+#: uc_catalog/uc_catalog.module:1308,1317,1317,1317,1352,1343,1348
+msgid "Block list display"
+msgstr "Blokliste-visning"
+
+#: uc_catalog/uc_catalog.module:1315,1324,1324,1324,1359,1350,1355,1101,1101,1077,1072,1071,1071,1071,1071,1080,1080
+msgid "Block title links to top level catalog page"
+msgstr "Bloktitel-links til katalogets startside"
+
+#: uc_catalog/uc_catalog.module:1330,1339,1339,1339,1374,1365,1370
+msgid "Independent catalog blocks display"
+msgstr "Visning af uafhængige katalog-blokke"
+
+#: uc_catalog/uc_catalog.module:1337,1346,1346,1346,1381,1372,1377
+msgid "Title for the block catalog"
+msgstr "Titel for blok-kataloget"
+
+#: uc_catalog/uc_catalog.module:1345,1354,1354,1354,1389,1380,1385
+msgid "Special offers block display"
+msgstr "Visning af særtilbud-blok"
+
+#: uc_catalog/uc_catalog.module:1359,1387,1368,1396,1368,1396,1368,1396,1403,1431,1394,1422,1399,1427
+msgid "Display help text"
+msgstr "Vis hjælpetekst"
+
+#: uc_catalog/uc_catalog.module:1373,1382,1382,1382,1417,1408,1413
+msgid "Best sellers block display"
+msgstr "Visning af topsælgere-blok"
+
+#: uc_catalog/uc_catalog.module:461,466,466,466,466,470
+msgid "Bulk generation of terms completed, one alias generated."
+msgid_plural "Bulk generation of terms completed, @count aliases generated."
+msgstr[0] "Massegenerering af begreber gennemført. Ét alias blev dannet."
+msgstr[1] "Massegenerering af begreber gennemført. @count aliaser blev dannet."
+
+#: uc_catalog/uc_catalog.module:576,585,585,585,585,589,591,565,565,568,563,562,562,562,562,571,571
+msgid "Subcategories will be displayed in @count column."
+msgid_plural "Subcategories will be displayed in @count columns."
+msgstr[0] "Underkategorier vil blive vist i @count kolonne."
+msgstr[1] "Underkategorier vil blive vist i @count kolonner."
+
+#: uc_catalog/uc_catalog.module:580,589,589,589,589,593,595,569,569
+msgid "The Special Offers block will display @count line."
+msgid_plural "The Special Offers block will display @count lines."
+msgstr[0] "Særtilbud-blokken vil vise @count linje."
+msgstr[1] "Særtilbud-blokken vil vise @count linjer."
+
+#: uc_catalog/uc_catalog.module:584,593,593,593,593,597,599,573,573
+msgid "The Best Sellers block will display @count line."
+msgid_plural "The Best Sellers block will display @count lines."
+msgstr[0] "Topsælgere-blokken vil blive vise @count linje."
+msgstr[1] "Topsælgere-blokken vil blive vise @count linjer."
+
+#: uc_catalog/uc_catalog.module:599,608,608,608,608,612,614,588,588,578,573,572,572,572,572,581,581
+msgid "The grid will be displayed in @count column."
+msgid_plural "The grid will be displayed in @count columns."
+msgstr[0] "Matrixet vil blive vist i @count kolonne."
+msgstr[1] "Matrixet vil blive vist i @count kolonner."
+
+#: uc_catalog/uc_catalog.module:141,142,142,142,142,141,141,135,135,135,135,135,135,135,135,135,131,135,129,129,129,129,129
+msgid "view catalog"
+msgstr "vis katalog"
+
+#: uc_catalog/uc_catalog.module:78,78,78,78,77,77,77,77,77,77,77,77,77,77,77,76,77,74,74,74,74,74
+msgid "Configure the catalog settings."
+msgstr "Konfigurér katalogindstillingerne."
+
+#: uc_catalog/uc_catalog.module:492,492,492,492,496,498,472,472,475,475,475,475,475,475,475,522,475,523,520,518,518,518
+msgid "catalog pages"
+msgstr "katalogsider"
+
+#: uc_catalog/uc_catalog.module:308,301,301,301,301,301,301,301,301,301,351,301,351,351,346,346,346
+msgid "The image will not be resized. Consider installing <a href=\"@url\">Image cache</a>."
+msgstr "Billedet vil ikke blive skaleret. Overvej at installere <a href=\"@url\">Image cache</a>."
+
+#: uc_catalog/uc_catalog.module:472,446,446,449,449,449,449,449,449,449,496,449,494,494,489,489,489
+msgid "Bulk generation of terms completed, @count alias generated."
+msgid_plural "Bulk generation of terms completed, @count aliases generated."
+msgstr[0] "Massegenerering af begreber er gennemført. @count alias dannet."
+msgstr[1] "Massegenerering af begreber er gennemført. @count aliaser dannet."
+
+#: uc_catalog/uc_catalog.module:524,498,498,501,501,501,501,501,501,500,546,500,547,544,542,542,542
+msgid "There is @count product not listed in the catalog."
+msgid_plural "There are @count products not listed in the catalog."
+msgstr[0] "Der er @count produkt, som ikke er oplistet i kataloget."
+msgstr[1] "Der er @count produkter, som ikke er oplistet i kataloget."
+
+#: uc_catalog/uc_catalog.module:510,510,510,510,519,519
+msgid "No vocabulary has been recognized as the Ubercart catalog. Choose one on <a href=\"!admin_catalog\">this page</a> or click <a href=\"!admin_vocab\">here</a> to create one first."
+msgstr "Intet ordforråd blev genkendt som Ubercart's katalog. Vælg et på <a href=\"!admin_catalog\">denne side</a> eller klik <a href=\"!admin_vocab\">her</a> for at lave et først."
+
+#: uc_catalog/uc_catalog.module:501,547,501,548,545,543,543,543
+msgid " Products are listed by assigning a category from the <a href=\"!cat_url\">Product Catalog</a> vocabulary to them."
+msgstr "Produkter oplistes ved at tildele dem en kategori fra <a href=\"!cat_url\">Produktkatalog</a>-ordforrådet."
+
+#: uc_catalog/uc_catalog.module:507,553,507,554,551,549,549,549
+msgid "Add terms for the products to inhabit."
+msgstr "Tilføj begreber som produkterne kan benytte."
+
+#: uc_catalog/uc_catalog.admin.inc:34
+msgid "Vocabulary %name is set as the product catalog."
+msgstr "Ordforrådet %name er valgt som produktkatalog."
+
+#: uc_catalog/uc_catalog.admin.inc:66,64,64,64,64,64
+msgid "Catalog breadcrumb is being displayed."
+msgstr "Katalog-breadcrumbs vises."
+
+#: uc_catalog/uc_catalog.admin.inc:67,65,65,65,65,65
+msgid "Catalog breadcrumb is hidden."
+msgstr "Katalog-breadcrumbs er skjult."
+
+#: uc_catalog/uc_catalog.admin.inc:75,73,73,73,73,73
+msgid "Node count is being displayed in the catalog breadcrumb."
+msgstr "Nodeantallet bliver vist i katalogets breadcrumb."
+
+#: uc_catalog/uc_catalog.admin.inc:76,74,74,74,74,74
+msgid "Node count is not being displayed in the catalog breadcrumb."
+msgstr "Nodeantallet bliver ikke vist i katalogets breadcrumb."
+
+#: uc_catalog/uc_catalog.admin.inc:84,82,82,82,82,82
+msgid "The catalog view is displaying subcategories."
+msgstr "Katalogvisningen indeholder underkategorier."
+
+#: uc_catalog/uc_catalog.admin.inc:85,83,83,83,83,83
+msgid "The catalog view is not displaying subcategories."
+msgstr "Katalogvisningen indeholder ikke underkategorier."
+
+#: uc_catalog/uc_catalog.admin.inc:92,90,90,90,90,90
+msgid "Subcategories are being displayed in @columns columns."
+msgstr "Underkategorier bliver vist i @columns kolonner."
+
+#: uc_catalog/uc_catalog.admin.inc:106,104,104,104,104,104
+msgid "There are @nodes product nodes displayed per page."
+msgstr "Der bliver vist @nodes produktnoder per side."
+
+#: uc_catalog/uc_catalog.admin.inc:120
+msgid "Block title links to top-level catalog page"
+msgstr "Bloktitel-links til katalogets startside"
+
+#: uc_catalog/uc_catalog.admin.inc:123,122,122,122,122,122
+msgid "Block title is pointing to the top-level catalog page."
+msgstr "Blok-titlen peger hen til katalogets startside."
+
+#: uc_catalog/uc_catalog.admin.inc:124,123,123,123,123,123
+msgid "Block title is not pointing to the top-level catalog page."
+msgstr "Blok-titlen peger ikke hen til katalogets startside."
+
+#: uc_catalog/uc_catalog.admin.inc:133,131,131,131,131,131
+msgid "Expanding categories in the catalog block."
+msgstr "Kategorier i katalogblokken kan udfoldes."
+
+#: uc_catalog/uc_catalog.admin.inc:134,132,132,132,132,132
+msgid "Not expanding categories in the catalog block."
+msgstr "Kategorier i katalogblokken kan ikke udfoldes."
+
+#: uc_catalog/uc_catalog.admin.inc:142,140,140,140,140,140
+msgid "The number of nodes in a category are being shown in the catalog block."
+msgstr "Antallet af noder i en kategori bliver vist i katalogblokken."
+
+#: uc_catalog/uc_catalog.admin.inc:143,141,141,141,141,141
+msgid "The number of nodes in a category are not being shown in the catalog block."
+msgstr "Antallet af noder i en kategori bliver ikke vist i katalogblokken."
+
+#: uc_catalog/uc_catalog.admin.inc:175,158,158,158,158,158
+msgid "Products are displayed in a grid."
+msgstr "Produkter bliver vist i et matrix."
+
+#: uc_catalog/uc_catalog.admin.inc:176
+msgid "Products are displayed on a list table."
+msgstr "Produkter bliver vist på en listetabel."
+
+#: uc_catalog/uc_catalog.admin.inc:185
+msgid "The grid will be displayed in @columns columns"
+msgstr "Matrixet vil blive vist i @columns kolonner."
+
+#: uc_catalog/uc_catalog.admin.inc:193
+msgid "Every cell is displaying product titles."
+msgstr "Hver celle viser produkttitlen."
+
+#: uc_catalog/uc_catalog.admin.inc:194
+msgid "Every cell is hiding product titles."
+msgstr "Hver celle skjuler produkttitlen."
+
+#: uc_catalog/uc_catalog.admin.inc:203
+msgid "Every cell is displaying product model (SKU)."
+msgstr "Hver celle viser produktets varenummer."
+
+#: uc_catalog/uc_catalog.admin.inc:204
+msgid "Every cell is hiding product model (SKU)."
+msgstr "Hver celle skjuler produktets varenummer."
+
+#: uc_catalog/uc_catalog.admin.inc:213
+msgid "Every cell is displaying product sell price."
+msgstr "Hver celle viser produktets salgspris."
+
+#: uc_catalog/uc_catalog.admin.inc:214
+msgid "Every cell is hiding product sell price."
+msgstr "Hver celle skjuler produktets salgspris."
+
+#: uc_catalog/uc_catalog.admin.inc:223
+msgid "Every cell is displaying product \"Add to cart\"."
+msgstr "Hver celle viser \"Læg i kurv\"-knappen."
+
+#: uc_catalog/uc_catalog.admin.inc:224
+msgid "Every cell is hiding product \"Add to cart\"."
+msgstr "Hver celle skjuler \"Læg i kurv\"-knappen."
+
+#: uc_catalog/uc_catalog.admin.inc:233
+msgid "Every cell is displaying attributes when \"Add to cart button\" is selected."
+msgstr "Hver celle viser tilpasningsmuligheder, når \"Læg i kurv\"-knappen er valgt."
+
+#: uc_catalog/uc_catalog.admin.inc:234
+msgid "Every cell is hiding attributes when \"Add to cart button\" is selected."
+msgstr "Hver celle skjuler tilpasningsmuligheder, når \"Læg i kurv\"-knappen er valgt."
+
+#: uc_catalog/uc_catalog.module:540,541,538,536,536,536
+msgid "Vocabulary !name has been identified as the Ubercart catalog."
+msgstr "Ordforrådet !name er blevet identificeret som Ubercart's catalog."
+
+#: uc_catalog/uc_catalog.module:566,567,564,562,562,562
+msgid "No vocabulary has been recognized as the Ubercart catalog. Choose one on <a href=\"!admin_catalog\">this page</a> or add one on the <a href=\"!admin_vocab\">taxonomy admin page</a> first, if needed."
+msgstr "Intet ordforråd blev genkendt som Ubercart's katalog. Vælg et på <a href=\"!admin_catalog\">denne side</a> eller tilføj et på <a href=\"!admin_vocab\">taksonomi-administrationssiden</a> først, om nødvendigt."
+
+#: uc_catalog/uc_catalog.module:758,759,756,754,754,754
+msgid "Block settings:"
+msgstr "Blok-indstillinger:"
+
+#: uc_catalog/uc_catalog.module:106,104,104,104,104,104
+msgid "Product grid settings"
+msgstr "Indstillinger for produktmatrix"
+
+#: uc_catalog/uc_catalog.admin.inc:33,33,33,33,33
+msgid "The taxonomy vocabulary <a href=\"!edit-url\">%name</a> is set as the product catalog."
+msgstr "Taksonomi-ordforrådet <a href=\"!edit-url\">%name</a> er valgt som produktkatalog."
+
+#: uc_catalog/uc_catalog.admin.inc:119,119,119,119,119
+msgid "Make the block title a link to the top-level catalog page."
+msgstr "Gør bloktitlen til et link, der fører til katalogets startside."
+
+#: uc_catalog/uc_catalog.admin.inc:155,155,155,155,155
+msgid "Display products in the catalog in a grid."
+msgstr "Vis katalogets produkter i et matrix."
+
+#: uc_catalog/uc_catalog.admin.inc:159,159,159,159,159
+msgid "Products are displayed in a table list."
+msgstr "Produkter bliver vist i en tabelliste."
+
+#: uc_catalog/uc_catalog.admin.inc:162,162,162,162,162
+msgid "If unchecked, the default table display will be used and the settings on this form will be ignored."
+msgstr "Hvis ikke valgt, vil standardtabellen blive brugt, og indstillingerne på denne formular vil blive ignoreret."
+
+#: uc_catalog/uc_catalog.admin.inc:166,166,166,166,166
+msgid "Number of columns in the product grid"
+msgstr "Antal kolonner i produktmatrixet"
+
+#: uc_catalog/uc_catalog.admin.inc:169,169,169,169,169
+msgid "The grid will be displayed in @columns columns."
+msgstr "Matrixet vil blive vist i @columns kolonner."
+
+#: uc_catalog/uc_catalog.admin.inc:174,174,174,174,174
+msgid "Displayed fields"
+msgstr "Viste felter"
+
+#: uc_catalog/uc_catalog.admin.inc:175,175,175,175,175
+msgid "The checked fields will be included in the product grid for each product in your catalog."
+msgstr "De afkrydsede felter vil blive vist i produktmatrixet for hvert produkt i dit katalog."
+
+#: uc_catalog/uc_catalog.admin.inc:179,179,179,179,179
+msgid "Product title"
+msgstr "Produkttitel"
+
+#: uc_catalog/uc_catalog.admin.inc:184,184,184,184,184
+msgid "Product SKU"
+msgstr "Varenummer"
+
+#: uc_catalog/uc_catalog.admin.inc:189,189,189,189,189
+msgid "Default product image"
+msgstr "Standard produktbillede"
+
+#: uc_catalog/uc_catalog.admin.inc:190,190,190,190,190
+msgid "The image will always be included in the product grid."
+msgstr "Billedet vil altid blive vist i produktmatrixet."
+
+#: uc_catalog/uc_catalog.admin.inc:206,206,206,206,206
+msgid "Attribute selection elements"
+msgstr "Elementer til produkttilpasning"
+
+#: uc_catalog/uc_catalog.admin.inc:207,207,207,207,207
+msgid "Adds any available attribute selection form elements to the add to cart form if displayed in the grid."
+msgstr "Hvis der er tilpasningsmuligheder for produktet, bliver de blive vist i \"læg i kurv\"-formularen, hvis den bliver vist i matrixet."
+

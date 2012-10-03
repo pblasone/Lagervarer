@@ -1,0 +1,711 @@
+<?php
+// $Id$
+
+/**
+* @file
+* Module for accepting alt bids for auctions run by AuctionFlex
+*/
+
+
+		
+
+/**
+ * Implementation of hook_perm().
+ */
+function auctionflex_perm() {
+	return array('administer aflex', 'import from aflex', 'view aflex catalogue', 'make aflex bids');
+}   
+
+
+
+/** 
+ * Implementation of hook_menu().
+ */
+function auctionflex_menu() {
+	return array(
+		'admin/settings/auctionflex' => array(
+		    'title' => 'AuctionFlex settings',
+		    'description' => 'Edit the AuctionFlex settings.',
+		    'page callback' => 'drupal_get_form',
+		    'page arguments' => array('auctionflex_settings_form'),
+		    'access arguments' => array('administer aflex'),
+		    'type' => MENU_NORMAL_ITEM,
+		    'file' => 'auctionflex.admin.inc',		
+		),			
+		'auktioner' => array(
+			'title' => 'Auctions',
+			'page callback' => 'auctionflex_auctions',			
+			'access arguments' => array('access content'),
+			'type' => MENU_NORMAL_ITEM,
+		),
+		'auktioner/%auction/katalog' => array(
+		    'title' => 'Auction catalogue',
+		    'page callback' => 'auctionflex_catalogue',
+		    'page arguments' => array(1),
+		    'access arguments' => array('access content'),
+		    'type' => MENU_CALLBACK,
+		),			
+		'auktioner/%auction/katalog/%lot' => array(
+		    'page callback' => 'auctionflex_lot',		  
+			'access arguments' => array('access content'),			
+		    'page arguments' => array(3),
+		    'type' => MENU_CALLBACK,			
+		),
+		'auktioner/%auction/registrering' => array(
+			'title' => 'Auction registration',
+		    'page callback' => 'drupal_get_form',		  
+			'access arguments' => array('access content'),			
+		    'page arguments' => array('auctionflex_bidder_registration_form', 1),
+		    'type' => MENU_CALLBACK,			
+		),
+	);        	 
+} 
+ 	
+function auction_load($auction_id) {
+	if ($result = db_result(db_query("SELECT n.nid FROM {node} n INNER JOIN {content_type_auktion} cta ON (n.nid = cta.nid) WHERE n.status = 1 AND cta.field_auction_id_value = %d", (int)$auction_id))) {
+        return node_load($result);
+    } else {			  
+    	return FALSE;
+    }
+} 
+
+function lot_load($lot_ident = 0, $ident = 'lotnum') {
+	$placeholder = $ident == 'lotnum' ? 's' : 'd';
+	if ($lot = db_fetch_array(db_query("SELECT c.lot_id, c.lotnum, c.auction_id AS auction_nid, c.inventorynum, c.quantity, c.lead, c.description, c.images, c.winning_bid, c.max_bid, c.winning_bidcard, a.field_auction_id_value AS auction_id FROM {aflex_catalogue} c INNER JOIN {content_type_auktion} a ON (c.auction_id = a.nid) WHERE c.".$ident." = %".$placeholder, $lot_ident))) {
+		$lot['images'] = unserialize($lot['images']);
+		return $lot;	
+	}
+}
+	
+
+/**
+ * Implementation of hook_theme().
+ */
+function auctionflex_theme($existing, $type, $theme, $path) {
+	return array(
+		'auctionflex_bid_table' => array(
+			'arguments' => array('form' => NULL),
+		),
+	);
+}  
+
+function auctionflex_form_alter(&$form, $form_state, $form_id) {
+	if ($form_id == 'auktion_node_form') {
+
+		$form['#attributes']['enctype'] = "multipart/form-data";	
+		$form['#validate'][] = 'auctionflex_auction_form_validate';
+		$form['catalogue'] = array(
+			'#type' => 'fieldset',
+			'#title' => t('Catalogue import'),
+		);			
+		
+
+		if ($form['nid']['#value']) {
+			$res = db_fetch_array(db_query("SELECT (SELECT Count(*) FROM {aflex_catalogue} WHERE auction_id = %d) AS lots, (SELECT Count(*) FROM {aflex_catalogue} c JOIN {aflex_bids} b ON (c.lot_id = b.lot_id) WHERE c.auction_id = %d) AS bids, (SELECT Count(*) FROM {aflex_bidcards} WHERE auction_id = %d) AS bidcards", $form['nid']['#value'], $form['nid']['#value'], $form['nid']['#value']));
+			$form['catalogue']['catalogue_status'] = array(
+				'#type' => 'item',
+				'#value' => $res['lots'] ? t('This auction has a catalogue with <strong>@lots</strong> lots.<br /><strong>@bids</strong> bids have been made on the auction.<br /><strong>@bidcards bid cards have been assigned to clients.</strong>', array('@lots' => $res['lots'], '@bids' => $res['bids'], '@bidcards' => $res['bidcards'])) : t('No catalogue has been uploaded.'),
+			);
+			
+		}
+
+		$form['catalogue']['xmlfile'] = array(
+          	'#type' => 'file',
+   	        '#title' => t('XML Catalogue for the auction'),
+		);			 
+		
+		if ($res['lots']) {
+			$form['catalogue']['confirm_new_catalogue'] = array(
+    	      	'#type' => 'checkbox',
+   	    	    '#title' => t('Confirm deletion of existing catalogue and BIDS!'),
+				'#description' => t('If you wish to upload a new catalogue, please check this box to confirm that the existing catalogue along with any bids should be deleted.'),
+			);
+		}
+		else {
+			$form['catalogue']['confirm_new_catalogue'] = array(
+    	      	'#type' => 'value',
+				'#value' => TRUE,
+			);				
+		}			
+			
+			
+	}
+	
+}
+
+function auctionflex_auction_form_validate($form, &$form_state) {
+	if (is_numeric(trim($form_state['values']['field_auction_id'][0]['value']))) {
+		$auction_id = (int)trim($form_state['values']['field_auction_id'][0]['value']);
+		if (db_result(db_query("SELECT COUNT(*) FROM {content_type_auktion} WHERE field_auction_id_value = %d AND NOT nid = %d", $auction_id, $form_state['values']['nid']))) {
+			form_set_error('field_auction_id', t('The AuctionFlex auction with this ID already exists in the system. You cannot create 2 representations of the same auction.'));				
+		}	 
+	}
+	else {
+		form_set_error('field_auction_id', t('The auction ID must be a whole number and should match the auction number assigned by AuctionFlex.'));			
+	}
+
+    if (!preg_match('/^[-,\d\s]*$/', $form_state['values']['field_reserved_bidcards'][0]['value'])) {
+		form_set_error('field_reserved_bidcards', t('Illegal characters have been discovered in this field. Please type in only comma separated bidcard numbers or bidcard series specified as two numbers with a hyphen in between.'));
+	}
+}	  
+
+function _auctionflex_import_catalogue($nid) {
+	if (user_access('import from aflex')) {
+		$validators = array(
+		    'file_validate_extensions' => array('xml'),
+		);		
+		if ($file = file_save_upload('xmlfile', $validators)) {
+			if (file_exists($file->filepath)) {
+		    	if ($xml = simplexml_load_file($file->filepath)) {
+					_auctionflex_delete_catalogue($nid);				
+					
+					$sql_inserts = array();
+					$sql_values = array();
+					foreach ($xml->c_export as $lot) {
+						$sql_inserts[] = "('%s', %d, %d, %d, '%s', '%s', '%s', '%s', %d, %d, %d, '%s')";								
+						$sql_values[] = $lot->lotnum;
+						$sql_values[] = $nid;																
+						$sql_values[] = $lot->inventorynum;																
+						$sql_values[] = $lot->quantity;																
+						$sql_values[] = $lot->inventorytype;																
+						$sql_values[] = $lot->lead;																
+						$sql_values[] = $lot->description1;																
+						$sql_values[] = $lot->aflexcategory;																																																																
+						$sql_values[] = $lot->presaleestmin;
+						$sql_values[] = $lot->presaleestmax;
+						$sql_values[] = $lot->reserveeach;
+
+						$lot_images = array();
+						if ((string)$lot->image1) { $lot_images[] = (string)$lot->image1; }
+						if ((string)$lot->image2) { $lot_images[] = (string)$lot->image2; }
+						if ((string)$lot->image3) { $lot_images[] = (string)$lot->image3; }
+						if ((string)$lot->image4) { $lot_images[] = (string)$lot->image4; }
+						if ((string)$lot->image5) { $lot_images[] = (string)$lot->image5; }
+						if ((string)$lot->image6) { $lot_images[] = (string)$lot->image6; }
+						if ((string)$lot->image7) { $lot_images[] = (string)$lot->image7; }
+						if ((string)$lot->image8) { $lot_images[] = (string)$lot->image8; }
+						if ((string)$lot->image9) { $lot_images[] = (string)$lot->image9; }
+						if ((string)$lot->image10) { $lot_images[] = (string)$lot->image10; }																																																																								
+						$sql_values[] = serialize($lot_images);																																
+					} 
+					$lot_count = count($sql_inserts);
+					if ($lot_count) {
+						db_query("INSERT INTO {aflex_catalogue} (lotnum, auction_id, inventorynum, quantity, inventorytype, lead, description, aflexcategory, presaleestmin, presaleestmax, reserveeach, images) VALUES " . implode(', ', $sql_inserts), $sql_values); 
+					}
+					drupal_set_message(t('@count lots were imported to the catalogue!', array('@count' => $lot_count)), 'status');					
+				}							
+			}
+		}
+	}		
+}
+	   	 
+
+function _auctionflex_delete_catalogue($nid = 0) {
+	if (user_access('administer aflex')) {
+		db_query("DELETE FROM {aflex_bids} WHERE lot_id IN (SELECT lot_id FROM {aflex_catalogue} WHERE auction_id = %d)", $nid);					
+		db_query("DELETE FROM {aflex_catalogue} WHERE auction_id = %d", $nid);					
+	}		
+}	   	 
+
+function auctionflex_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+	if ($node->type == 'auktion') {
+		switch ($op) {		  
+		case 'insert':
+			_auctionflex_import_catalogue($node->nid);
+//			mkdir(variable_get('file_directory_path', 'sites/default/files').'/auctionflex/'.(int)$node->field_auction_id[0]['value'], 0777, true);			
+			break;
+        case 'update':	
+			if ($node->confirm_new_catalogue) { 								 
+				_auctionflex_import_catalogue($node->nid);			
+			}
+			break;		
+        case 'delete':	
+				_auctionflex_delete_catalogue($node->nid);
+				db_query("DELETE FROM {aflex_bidcards} WHERE auction_id = %d", $node_id);								
+			break;				
+        case 'view':		
+        case 'load':		
+
+		}
+
+	}
+		
+}	
+
+/**
+ * Implementation of hook_user()
+ */
+function auctionflex_user($op, &$edit, &$account, $category = NULL) {
+	switch ($op) {
+		case 'load':            
+            if ($rs = db_query("SELECT auction_id, bidcard FROM {aflex_bidcards} WHERE uid = %d", $account->uid)) {				        
+				$account->bidcards = array();
+				while ($bidcard = db_fetch_array($rs)) {
+					$account->bidcards[$bidcard['auction_id']] = $bidcard['bidcard'];	
+				}					        
+			}        
+        	break;
+    }
+}  	 
+
+
+function auctionflex_auctions() {
+	if ($rs = db_query("SELECT n.nid FROM {node} n INNER JOIN {content_type_auktion} cta ON (n.nid = cta.nid) WHERE n.type = 'auktion' AND n.status = 1 ORDER BY cta.field_auction_starts_value DESC")) {
+		while ($auction = db_fetch_array($rs)) {	
+			$node = node_load($auction['nid']);
+			$result .= node_view($node, TRUE);					
+		}
+	}
+	else {
+		$result = t('We have no scheduled auctions at the moment, sorry.');	
+	}
+	
+	return $result;
+}			
+
+
+function auctionflex_catalogue($auction) {																	
+	$auction_id = (int)$auction->field_auction_id[0]['value'];
+	global $user;
+
+	$user_bids = array();
+	$rs = db_query("SELECT b.lot_id, MAX(b.max_amount) FROM {aflex_bids} b INNER JOIN {aflex_catalogue} c ON (b.lot_id = c.lot_id) WHERE b.uid = %d AND c.auction_id = %d GROUP BY b.lot_id", $user->uid, $auction->nid);
+	while ($bid = db_fetch_array($rs)) {
+		$user_bids[$bid['lot_id']] = $bid['amount'];
+	}
+
+	$rows = array();
+	$rs = pager_query("SELECT lot_id, lotnum, quantity, inventorytype, lead, description, images, winning_bid, winning_bidcard FROM {aflex_catalogue} WHERE auction_id = %d ORDER BY lotnum ASC", 50, 0, NULL, $auction->nid);
+	while ($lot = db_fetch_array($rs)) {
+		$bidform = drupal_get_form('auctionflex_bid_form_'.$lot['lot_id'], $lot['lot_id'], $_GET['q'], TRUE);
+		$bidcell = $lot['winning_bid'];					
+		$rowclass = "";
+		if (!isset($user->bidcards[$auction_id])) {
+						
+		}
+		elseif ($user->bidcards[$auction_id] == $lot['winning_bidcard']) {
+			$rowclass .= " winning";
+			$statusmsg = t("You're the highest bidder on this lot.");
+			$bidform = '';
+			$bidcell = $lot['winning_bid'] . '<br />' . t('Your max.: ') . $user_bids[$lot['lot_id']];			
+		}
+		elseif (isset($user_bids[$lot['lot_id']])) {
+			$rowclass .= " loosing";									 
+			$statusmsg = t("Someone has outbid you on this lot.");			
+		}
+		else {
+			$bidcell = (int)$lot['winning_bid'];		
+		}										 
+		
+		$row = '<td class="lotnum">'.$lot['lotnum'].'</td><td class="image">';
+		$images = unserialize($lot['images']);
+		$row .= count($images) ? theme('imagecache', 'auction_list', drupal_get_path('module', 'auctionflex').'/images/'.$auction_id.'/'.$images[0]) : 'No image';				
+		$row .= '</td><td class="title"><a href="'.url('auktioner/'.$auction_id.'/katalog/'.$lot['lotnum']).'">'.$lot['lead'].'</a><br />'.$lot['description'].'</td><td class="winning_bid">'.$bidcell.'</td><td class="bidform">'.$bidform.'</td>';
+
+		$rows[] = '<tr class="'.$rowclass.'">'.$row.'</tr>';	
+	}
+	$table = '<table>'.implode('', $rows).'</table>';							
+	
+	return $table;
+
+
+}
+
+
+/**
+ * Implementation of hook_forms().
+ */
+function auctionflex_forms($form_id) {
+  $forms = array();
+  if (strpos($form_id, "auctionflex_bid_form") === 0) {
+    $forms[$form_id] = array('callback' => 'auctionflex_bid_form');
+  }		
+  return $forms;
+}
+ 
+
+
+function auctionflex_bid_form($form_state, $lot_id = 0, $referer = NULL, $list = FALSE) {
+    global $base_url;
+	$lot = lot_load($lot_id, 'lot_id');
+	$redirect = FALSE;
+			
+	if (is_numeric($_GET['b'])) {
+		$bid = (int)$_GET['b'];
+		$submit_caption = t('Confirm bid');	
+	}	
+	else {
+		$bid = FALSE;
+		$submit_caption = t('Place bid');
+	}	
+	if (isset($_GET['r'])) {
+		$referer = $_GET['r'];
+		$redirect = str_replace($base_url, '', $referer);
+	}		
+
+	$form = array(
+        '#submit' => array('auctionflex_bid_form_submit'), 
+		'#redirect' => $redirect,
+    	'#theme' => 'auctionflex_bid_table',
+        '#validate' => array('auctionflex_bid_form_validate'),
+		'list' => array(
+			'#type' => 'value',
+			'#value' => $list,
+		),
+		'lot_id' => array(
+			'#type' => 'value',
+			'#value' => $lot_id,
+		),
+		'referer' => array(
+			'#type' => 'value',
+			'#value' => $referer,
+		),
+		'confirm_bid' => array(
+			'#type' => 'value',
+			'#value' => $bid,		
+		),						
+		'bid_amount' => array(
+			'#type' => 'textfield',
+			'#field_prefix' => variable_get('uc_currency_sign', ''),
+			'#size' => 6,
+			'#maxlength' => 7,
+		),
+		'place_bid' => array(
+			'#type' => 'submit',
+	       	'#name' => 'place_bid',                    
+			'#value' => $submit_caption,
+		),
+	);	  
+
+	return $form;						
+		
+}		
+
+function auctionflex_bid_form_validate($form, &$form_state) {
+	$bid_amount = $form_state['values']['confirm_bid'] ? (int)$form_state['values']['confirm_bid'] : (int)$form_state['values']['bid_amount'];
+	global $user;
+	$lot = lot_load($form_state['values']['lot_id'], 'lot_id');
+	$increment = variable_get('auctionflex_min_bid', 100);
+	
+	if ($bid_amount > 0 || $form_state['values']['confirm_bid']) {
+	    if (!preg_match('/^[0-9]*$/', $bid_amount)) {
+			form_set_error('bid_amount', t("You must enter a rounded amount without decimals."));
+		}
+		elseif ($bid_amount < $increment || $bid_amount < ($increment + $lot['winning_bid']) || $bid_amount / $increment != round($bid_amount / $increment)) {
+			form_set_error('bid_amount', t("You must bid at least @currency @min_amount in increments of @increment", array('@currency' => variable_get('uc_currency_sign', ''), '@min_amount' => $increment + $lot['winning_bid'], '@increment' => $increment)));
+		}	  
+	}		
+}	
+
+
+function auctionflex_bid_form_submit($form, &$form_state) {  
+	global $user; 								   
+	$lot = lot_load($form_state['values']['lot_id'], 'lot_id');	
+	$winning_bid = $lot['winning_bid'] + variable_get('auctionflex_min_bid', 100);
+	
+	if (!$user->uid || !user_access('make aflex bids', $user)) {
+		drupal_set_message(t("Please log in to make a bid. If you're not yet registered, please !link, so you can start bidding on our auctions.", array('!link' => l(t('sign up for a free user account'), 'user/register'), )), 'warning');			
+		drupal_goto('user/login', array('l' => $lot['lot_id'], 'b' => $form_state['values']['bid_amount'], 'r' => $form_state['values']['referer']));			
+	}
+	elseif (!isset($user->bidcards[$lot['auction_nid']])) {
+		drupal_goto('auktioner/'.$lot['auction_id'].'/registrering', array('l' => $lot['lot_id'], 'b' => $form_state['values']['bid_amount'], 'r' => $form_state['values']['referer']));
+	}
+	elseif ($form_state['values']['confirm_bid']) {
+		if ((int)$form_state['values']['confirm_bid'] <= $lot['max_bid']) {
+			_auctionflex_push_bid($lot['lot_id'], (int)$form_state['values']['confirm_bid']);
+			drupal_set_message(t("Another bidder has offered a higher price for this item. You must bid more to win the bid!"), 'error');			
+			drupal_goto('auktioner/'.$lot['auction_id'].'/katalog/'.$lot['lotnum'], array('r' => $form_state['values']['referer']));				
+		}
+		else {	
+			$record = array(
+				'lot_id' => $lot['lot_id'],
+				'uid' => $user->uid,
+				'bid_time' => time(),
+				'max_amount' => $form_state['values']['confirm_bid'],			
+			);	
+			drupal_write_record('aflex_bids', $record);
+			db_query("UPDATE {aflex_catalogue} SET winning_bid = %d, max_bid = %d, winning_bidcard = %d WHERE lot_id = %d", $winning_bid, $form_state['values']['confirm_bid'], $user->bidcards[$lot['auction_nid']], $lot['lot_id']);		
+		
+			drupal_set_message(t("Thank you for your bid. You are now the highest bidder on lot <strong>@lotnum - @title</strong>. If no one makes a higher bid, you will win this lot for <strong>@winning_bid</strong>. If someone bids more than your maximum of <strong>@max</strong>, you will be notified by e-mail.", array('@lotnum' => $lot['lotnum'], '@title' => $lot['lead'], '@winning_bid' => uc_currency_format($winning_bid), '@max' => uc_currency_format($form_state['values']['confirm_bid']))), 'status');
+		}			
+	}
+	else {
+		$bid_amount = $form_state['values']['bid_amount'] ? $form_state['values']['bid_amount'] : $winning_bid;	
+		drupal_set_message(t("Please confirm your bid by pressing the <em>Confirm bid</em> button!"), 'warning');			
+		drupal_goto('auktioner/'.$lot['auction_id'].'/katalog/'.$lot['lotnum'], array('b' => $bid_amount, 'r' => $form_state['values']['referer']));	
+	}
+}	 
+
+function theme_auctionflex_bid_table($form) {
+	$rows = array();
+
+	if (!$form['list']['#value']) {
+		$lot = lot_load($form['lot_id']['#value'], 'lot_id');	
+		$rows[] = array(
+			array( // th
+				'header' => TRUE,
+				'data' => t('Current high bid:'),
+			),
+			array( // td
+				'data' =>  uc_currency_format($lot['winning_bid']),
+				'class' => 'uc-auction-buy-now-price display_price',
+			),
+		);
+
+	}
+
+	if ($form['confirm_bid']['#value']) {
+		$rows[] = array(	
+			array( // th
+				'header' => TRUE,
+				'data' => t('Your maximum bid:'),
+			),
+			array( // td
+				'data' => uc_currency_format($form['confirm_bid']['#value']),
+				'class' => 'uc-bartering-user-bid-submit',
+			),
+		);	
+		$rows[] = array(	
+			array( // td
+				'colspan' => 2,
+				'data' =>  variable_get('auctionflex_disclaimer', t('All bids are binding and cannot be cancelled.')),
+				'class' => 'uc-auction-disclaimer',
+			),
+		);	
+	}
+	elseif (!$form['list']['#value']) {
+		$rows[] = array(	
+			array( // th
+				'header' => TRUE,
+				'data' => t('Your maximum bid:'),
+			),
+			array( // td
+				'data' =>  drupal_render($form['bid_amount']),
+				'class' => 'uc-bartering-user-bid-submit',
+			),
+		);
+	}
+	else {
+		$rows[] = array(	
+			array( // td 
+				'colspan' => 2,
+				'data' =>  drupal_render($form['bid_amount']),
+				'class' => 'uc-bartering-user-bid-submit',
+			),
+		);	
+	}		
+		
+	$rows[] = array( // tr
+		array( // td
+			'data' =>  drupal_render($form['place_bid']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']),
+			'colspan' => 2,
+		),
+	);
+	
+	return theme('table', array(), $rows, array('class' => 'auctionflex-bid-table'));
+}
+
+
+function auctionflex_bidder_registration_form(&$form_state, $auction = NULL) {
+	drupal_set_title(t('Please accept the auction terms'));
+	
+	$form = array(	 
+    	'#theme' => 'auctionflex_bidder_registration',	
+		'referer' => array(
+			'#type' => 'value',
+			'#value' => $_GET['r'],
+		),					
+		'auction_id' => array(
+			'#type' => 'value',
+			'#value' => $auction->field_auction_id[0]['value'],
+		),	
+		'lot_id' => array(
+			'#type' => 'value',
+			'#value' => $_GET['l'],
+		),	 
+		'bid_amount' => array(
+			'#type' => 'value',
+			'#value' => $_GET['b'],
+		),			
+		'terms' => array(
+			'#type' => 'textarea',
+			'#rows' => 20,
+			'#cols' => 50,
+			'#disabled' => TRUE,  
+			'#value' => $auction->field_terms[0]['value'],
+		),		
+		'accept' => array(
+			'#type' => 'checkbox',
+			'#title' => t('I have read and understood the terms for this auction.'),
+		),
+		'submit' => array(
+			'#type' => 'submit',
+	       	'#name' => 'submit',                    
+			'#value' => t('OK'),
+		),									
+		
+	);
+	
+	return $form;
+
+}				
+
+function auctionflex_bidder_registration_form_validate($form, &$form_state) {
+	global $user;
+	
+	if (!$form_state['values']['auction_id'] || !$user->uid || !user_access('make aflex bids', $user)) {
+		form_set_error('', t("An error has occured. Please try again or contact the site administrator."));			
+	}
+	if (!$form_state['values']['accept']) {
+		form_set_error('accept', t("You must accept the terms of this auction to be able to make bids."));			
+	}
+}
+ 
+
+function auctionflex_bidder_registration_form_submit($form, &$form_state) {  
+	global $user;
+	$auction_nid = db_result(db_query("SELECT nid FROM {content_type_auktion} WHERE field_auction_id_value = %d", (int)$form_state['values']['auction_id']));
+
+	if (!isset($user->bidcards[$auction_nid])) {
+		$bidcard = _auctionflex_new_bidcard($auction_nid, $user->uid);		
+	}
+	
+	if (is_numeric($form_state['values']['lot_id']) && is_numeric($form_state['values']['bid_amount'])) {
+		$lot = lot_load($form_state['values']['lot_id'], 'lot_id');	
+		drupal_goto('auktioner/'.$lot['auction_id'].'/katalog/'.$lot['lotnum'], array('b' => $form_state['values']['bid_amount'], 'r' => $form_state['values']['referer']));
+	}	
+
+}		   
+
+
+function auctionflex_lot($lot) {  
+	if (count($lot['images'])) {
+		$path = drupal_get_path('module', 'auctionflex').'/images/'.$lot['auction_id'].'/';
+		$images = array();
+		foreach ($lot['images'] as $image) {
+			$images[key($lot['images'])]['filepath'] = $path . $image;		
+			$images[key($lot['images'])]['data']['title'] = '';
+			$images[key($lot['images'])]['data']['alt'] = '';			
+		}	
+		$themed_images = theme('uc_product_image', $images);
+	}							  
+	$inv_type = _auctionflex_inventory_type($lot['inventorytype']);
+	
+	$result = '
+	  <div>
+	  	' . $themed_images . '
+	<div class="product-left">
+	    	<div class="product-left-element">    
+				<table class="auctionflex-bid-table"><tbody>
+					<tr><th>'.t('Lot #').'</th><td class="auctionflex-lot-no">'.$lot['lotnum'].'</td></tr>				
+					<tr><th>'.t('Lot type').'</th><td class="auctionflex-lot-no">'.$inv_type['title'].'</td></tr>									
+					<tr><th>'.t('VAT added').'</th><td class="auctionflex-lot-no">'.$inv_type['vat'].'</td></tr>														
+					<tr><th>'.t('Premium added').'</th><td class="auctionflex-lot-no">'.$inv_type['premium'].'</td></tr>																			
+				</tbody></table>
+			</div>                
+   			<div class="product-left-element"> 
+            	<h3><img src="/sites/all/themes/zenlager/images/ikon_auktionProdPage.png" width="33" height="18" />' . t('Place an advance bid') . '</h3>';
+				$result .= drupal_get_form('auctionflex_bid_form', $lot['lot_id'], $_GET['q']);
+		$result .= '
+	        </div>        	                
+    </div>
+    
+	<h2>' . t('Description') . '</h2>
+	<div>' . $lot['description'] . '</div>
+	<br style="clear: both;" />
+  </div>
+	';	 
+	
+	drupal_set_title($lot['lead']);
+	return $result;
+}
+	   
+
+function _auctionflex_new_bidcard($auction_nid = 0, $uid = 0) {
+	$bidcard = FALSE;
+	if ($auction_nid && $uid) {
+		if ($auction = node_load($auction_nid)) {
+			$reserved = array();
+
+			$reserved_db = db_query("SELECT bidcard FROM {aflex_bidcards} WHERE auction_id = %d ORDER BY bidcard ASC", $auction_nid);
+			while ($raw = db_fetch_array($reserved_db)) {
+				$reserved[$raw['bidcard']] = $raw['bidcard'];			
+			}
+
+			$reserved_raw = explode(',', $auction->field_reserved_bidcards[0]['value']);
+			foreach ($reserved_raw as $raw) {
+				if (strpos($raw, '-')) {
+					$range = explode('-', $raw);
+					$from = (int)trim($range[0]);
+					$to = (int)trim($range[1]);
+					if ($to > $from) {
+						for ($count = $from; $count <= $to; $count++) {
+							$reserved[$count] = $count;					
+						}				
+					}						
+				}	
+				else {
+					$reserved[(int)trim($raw)] = (int)trim($raw);				
+				}							 
+			}
+			dprint_r($reserved);
+
+			$bidcard = 1;
+			while (in_array($bidcard, $reserved)) {
+				$bidcard++;
+			}
+
+			$record = array(
+				'auction_id' => $auction_nid, 
+    	        'bidcard' => $bidcard,
+				'uid' => $uid,
+			);
+			drupal_write_record('aflex_bidcards', $record);                
+			
+			return $bidcard;
+		}	
+	}
+
+}			 
+
+
+function _auctionflex_push_bid($lot_id = 0, $bid_amount = 0) {
+	if ($lot = lot_load($lot_id, 'lot_id')) {		
+		$increment = variable_get('auctionflex_min_bid', 100);
+		if ($bid_amount >= $lot['winning_bid'] + $increment) {
+			$record = array(
+				'lot_id' => $lot_id,
+				'winning_bid' => $bid_amount,
+			); 
+			drupal_write_record('aflex_catalogue', $record, 'lot_id');						
+		}	
+	}
+}					
+
+
+function _auctionflex_inventory_type($type) {
+	switch ($type) {
+		case 'NY':
+			return array(
+				'title' => t('New product'),
+				'vat' => t('25 %'),
+				'premium' => t('25 % incl. VAT'),				
+			);				
+			break;
+		case 'CD':
+			return array(
+				'title' => t('Artwork'),
+				'vat' => t('0 %'),
+				'premium' => t('25 % incl. VAT<br />5 % royalty charge if sold for more than 2.250'),				
+			);						
+			break;
+		default:
+			return array(
+				'title' => t('Used product'),
+				'vat' => t('0 %'),
+				'premium' => t('25 % incl. VAT'),				
+			);									
+			break;	
+			
+	}
+}

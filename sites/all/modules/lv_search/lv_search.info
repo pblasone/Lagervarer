@@ -1,0 +1,7 @@
+; $Id$
+name = LV Search
+description = Product search filter and product e-mail agent management
+core = 6.x
+package = "Lagervarer"
+
+

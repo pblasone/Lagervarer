@@ -1,0 +1,54 @@
+<?php
+// $Id$
+/**
+* Install the LV Order module:
+* Create lv_orders table for storing bids
+* @file
+*/
+
+/**
+* Implementation of hook_install().
+*/
+function lv_order_install() {
+	drupal_install_schema('lv_order');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function lv_order_uninstall() {
+	drupal_uninstall_schema('lv_order');
+}
+
+/**
+* Implementation of hook_schema(),
+*/
+function lv_order_schema() {
+	return array(
+		'lv_order' => array(
+			'description' => 'Additions to the uc_orders table.',
+			'fields' => array(
+				'order_id' => array(
+					'description' => 'The {uc_orders}.order_id of the order.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'seller' => array(
+					'description' => 'The {user}.uid of the seller.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),          
+			),
+			'primary key' => array('order_id'),
+			'indexes' => array(
+				'seller' => array('seller'),
+			),                            	            
+		),
+	);
+
+}
+

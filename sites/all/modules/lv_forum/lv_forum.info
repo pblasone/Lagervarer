@@ -1,0 +1,7 @@
+; $Id$
+name = LV Forum
+description = Forum customizations for Lagervarer
+core = 6.x
+package = "Lagervarer"
+
+

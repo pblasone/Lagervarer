@@ -1,0 +1,145 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  uc_custom.module: n/a
+#  uc_custom.info: n/a
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-04-19 20:39+0200\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: uc_custom.module:155
+msgid "You've made a sale"
+msgstr ""
+
+#: uc_custom.module:237
+msgid "Click here to view the seller's profile"
+msgstr ""
+
+#: uc_custom.module:245
+msgid "VAT ID: "
+msgstr ""
+
+#: uc_custom.module:297
+msgid "Customer purchase price <strong>excluding VAT</strong>. If you enable bargaining, you can leave this field empty to prevent a fixed price from being displayed to the customers."
+msgstr ""
+
+#: uc_custom.module:298
+msgid "Sale method"
+msgstr ""
+
+#: uc_custom.module:307
+msgid "Delivery options"
+msgstr ""
+
+#: uc_custom.module:329
+msgid "Stock management"
+msgstr ""
+
+#: uc_custom.module:334
+msgid "Use stock management for this item"
+msgstr ""
+
+#: uc_custom.module:335
+msgid "Customers can only buy as many of this item as you have available. When the stock level reaches 0, the item will be removed from the site until you increase the stock level again."
+msgstr ""
+
+#: uc_custom.module:341
+msgid "Available quantity"
+msgstr ""
+
+#: uc_custom.module:346
+msgid "The number of items available for purchase."
+msgstr ""
+
+#: uc_custom.module:351
+msgid "Warning level"
+msgstr ""
+
+#: uc_custom.module:355
+msgid "When the stock level reaches this level, you will receive an e-mail notification."
+msgstr ""
+
+#: uc_custom.module:401;900
+msgid "VAT:"
+msgstr ""
+
+#: uc_custom.module:407;905
+msgid "Total:"
+msgstr ""
+
+#: uc_custom.module:453
+msgid "Price must be in a valid number format. No thousands separator and only one decimal point."
+msgstr ""
+
+#: uc_custom.module:469
+msgid "@property must be a positive number. No commas and only one decimal point."
+msgstr ""
+
+#: uc_custom.module:474
+msgid "Quantities should be numeric."
+msgstr ""
+
+#: uc_custom.module:477
+msgid "You have typed in a negative product quantity."
+msgstr ""
+
+#: uc_custom.module:562;856
+msgid "Price"
+msgstr ""
+
+#: uc_custom.module:826
+msgid "Cart Contents"
+msgstr ""
+
+#: uc_custom.module:827
+msgid "Display the contents of a customer's shopping cart."
+msgstr ""
+
+#: uc_custom.module:854
+msgid "Qty"
+msgstr ""
+
+#: uc_custom.module:855
+msgid "Products"
+msgstr ""
+
+#: uc_custom.module:867
+msgid "@attribute: @option"
+msgstr ""
+
+#: uc_custom.module:888
+msgid "!qtyx"
+msgstr ""
+
+#: uc_custom.module:895
+msgid "Subtotal:"
+msgstr ""
+
+#: uc_custom.module:0
+msgid "uc_custom"
+msgstr ""
+
+#: uc_custom.info:0
+msgid "UC Custom"
+msgstr ""
+
+#: uc_custom.info:0
+msgid "UC Customizations for Lagervarer"
+msgstr ""
+
+#: uc_custom.info:0
+msgid "Ubercart - extra"
+msgstr ""
+

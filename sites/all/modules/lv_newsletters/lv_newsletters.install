@@ -1,0 +1,78 @@
+<?php
+// $Id$
+/**
+* Install the LV Newsletters module:
+* Create lv_notifications table for storing notifications to be triggered during cron runs.
+* @file
+*/
+
+/**
+* Implementation of hook_install().
+*/
+function lv_newsletters_install() {
+	drupal_install_schema('lv_newsletters');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function lv_newsletters_uninstall() {
+	drupal_uninstall_schema('lv_newsletters');
+}
+
+/**
+* Implementation of hook_schema(),
+*/
+function lv_newsletters_schema() {
+	return array(
+		'lv_notifications' => array(
+			'description' => 'Stores notification alerts to be triggered on preset dates and times.',
+			'fields' => array(
+				'id' => array(
+					'description' => 'Unique ID for this table.',
+					'type' => 'serial',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),
+				'object_id' => array(
+					'description' => 'The id value of the object.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'object_type' => array(
+					'description' => 'The object type. I.e. node, bid, etc.',
+					'type' => 'varchar', 
+                    'length' => 10,					
+					'not null' => TRUE,
+					'default' => '',
+				),
+				'n_type' => array(
+					'description' => 'Notification type. I.e. 3days, 6hours, my_notification, etc..',
+					'type' => 'varchar', 
+                    'length' => 20,					
+					'not null' => TRUE,
+					'default' => '',
+				),
+				'created' => array(
+					'description' => 'The time the notification was created.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'trigger' => array(
+					'description' => 'When should this notification trigger.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),				                
+                    
+			),
+			'primary key' => array('id'),
+		),
+	);
+
+}

@@ -1,0 +1,537 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  uc_bartering.module: n/a
+#  uc_bartering.info: n/a
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-04-16 03:01+0200\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: uc_bartering.module:105;15
+msgid "Bargaining settings"
+msgstr ""
+
+#: uc_bartering.module:111
+msgid "Make this product available for bargaining."
+msgstr ""
+
+#: uc_bartering.module:112
+msgid "Warning: Unchecking this box will stop this product from being up for bargaining and its <a href=\"!blink\">current bids</a> will be rejected."
+msgstr ""
+
+#: uc_bartering.module:112
+msgid "Users can bid on the product, and you can reject their bid, accept it or make a counter-bid. If you make a counter-bid, the user can counter your bid, etc. until you hopefully agree on a price."
+msgstr ""
+
+#: uc_bartering.module:121
+msgid "The customer can bid for more than one piece."
+msgstr ""
+
+#: uc_bartering.module:122
+msgid "Check this box to allow customers to place a bid for more than one piece of the sale item. If a stock level is set for the product, this will be the maximum quantity a customer can bid on. If not, the customer can bid on an unlimited quantity of the item."
+msgstr ""
+
+#: uc_bartering.module:153
+msgid "Bartering box"
+msgstr ""
+
+#: uc_bartering.module:211
+msgid "It is no longer possible to place bids on this product."
+msgstr ""
+
+#: uc_bartering.module:236
+msgid "This product is no longer available for sale, and all pending bids for it have been deleted."
+msgstr ""
+
+#: uc_bartering.module:302
+msgid "The url for the product display page"
+msgstr ""
+
+#: uc_bartering.module:303
+msgid "The url directly to the bidding page for the product"
+msgstr ""
+
+#: uc_bartering.module:304
+msgid "The name of the product"
+msgstr ""
+
+#: uc_bartering.module:305
+msgid "The formatted bid amount for the currently pending bid (if any)"
+msgstr ""
+
+#: uc_bartering.module:306
+msgid "The quantity of the product that the currently pending bid (if any) was for"
+msgstr ""
+
+#: uc_bartering.module:307
+msgid "The formatted bid amount for the new bid (if any)"
+msgstr ""
+
+#: uc_bartering.module:308
+msgid "The quantity that was bid on in the new bid (if any)"
+msgstr ""
+
+#: uc_bartering.module:309
+msgid "The username for the bidder (potential buyer) in this bidding session"
+msgstr ""
+
+#: uc_bartering.module:310
+msgid "The username for the seller of this product"
+msgstr ""
+
+#: uc_bartering.module:311
+msgid "The message for the counterpart in case of counterbidding or rejection"
+msgstr ""
+
+#: uc_bartering.module:408;22;32
+msgid "Bids"
+msgstr ""
+
+#: uc_bartering.module:410
+msgid "See bid history for this item"
+msgstr ""
+
+#: uc_bartering.module:438
+msgid "Your bid is awaiting action from the other part. Meanwhile, you cannot place another bid."
+msgstr ""
+
+#: uc_bartering.module:446
+msgid "Congratulations with the sale!"
+msgstr ""
+
+#: uc_bartering.module:453
+msgid "Congratulations with the deal! To bid for more pieces of this sale item, please start a new bidding session by pressing the button below."
+msgstr ""
+
+#: uc_bartering.module:459
+msgid "Clear bidding history"
+msgstr ""
+
+#: uc_bartering.module:460
+msgid "Your bidding history for this product will be deleted, and you can place a new bid."
+msgstr ""
+
+#: uc_bartering.module:468
+msgid "This is your own sale item. Click on the bid count to see and respond to bids on this product."
+msgstr ""
+
+#: uc_bartering.module:477;853;1182
+msgid "Quantity"
+msgstr ""
+
+#: uc_bartering.module:478
+msgid "Your bid will be the total price for this quantity of the sale item."
+msgstr ""
+
+#: uc_bartering.module:487
+msgid " <strong>You can bid for a maximum of !number items.</strong>"
+msgstr ""
+
+#: uc_bartering.module:491
+msgid "Your bid"
+msgstr ""
+
+#: uc_bartering.module:506
+msgid "Select a pre-defined message to the counterpart"
+msgstr ""
+
+#: uc_bartering.module:509;509
+msgid "(None)"
+msgstr ""
+
+#: uc_bartering.module:510;510
+msgid "Your bid is way too high!"
+msgstr ""
+
+#: uc_bartering.module:511;511
+msgid "I was hoping for a better deal!"
+msgstr ""
+
+#: uc_bartering.module:512;512
+msgid "I need you to stretch a little bit more on the price!"
+msgstr ""
+
+#: uc_bartering.module:516
+msgid "Or type in your own message"
+msgstr ""
+
+#: uc_bartering.module:520
+msgid "You can select one of our pre-defined messages or type in your own. This is not required, however."
+msgstr ""
+
+#: uc_bartering.module:527
+msgid "Place bid"
+msgstr ""
+
+#: uc_bartering.module:528
+msgid "Your bid will be binding for 48 hours."
+msgstr ""
+
+#: uc_bartering.module:536
+msgid "Reject bid"
+msgstr ""
+
+#: uc_bartering.module:537
+msgid "You reject the last bid from the seller without placing a new bid yourself."
+msgstr ""
+
+#: uc_bartering.module:544;884
+msgid "Accept deal"
+msgstr ""
+
+#: uc_bartering.module:545
+msgid "You agree to the seller's last bid."
+msgstr ""
+
+#: uc_bartering.module:572;587
+msgid "An error has occured. Please contact the site administrator."
+msgstr ""
+
+#: uc_bartering.module:575
+msgid "The quantity is too high. You can bid for maximum !number of this item."
+msgstr ""
+
+#: uc_bartering.module:577
+msgid "The quantity cannot be 0. You must bid for at least 1 piece of this item."
+msgstr ""
+
+#: uc_bartering.module:581
+msgid "You must enter a bid amount."
+msgstr ""
+
+#: uc_bartering.module:589
+msgid "The requested action can only be performed on pending bids. There are no pending bids on this sale item."
+msgstr ""
+
+#: uc_bartering.module:619
+msgid "This bidding session has been deleted by a [store-name] site administrator. All pending bids have been rejected. If you have questions regarding this, please contact [store-name] support."
+msgstr ""
+
+#: uc_bartering.module:685
+msgid "Bid history"
+msgstr ""
+
+#: uc_bartering.module:712
+msgid "Reject pending bid or place a new counter-bid"
+msgstr ""
+
+#: uc_bartering.module:712
+msgid "Place a new bid on this item"
+msgstr ""
+
+#: uc_bartering.module:849
+msgid "Item"
+msgstr ""
+
+#: uc_bartering.module:857
+msgid "Total price"
+msgstr ""
+
+#: uc_bartering.module:869
+msgid "Please confirm the deal by clicking the accept buttom below. The order will be completed, and you will receive an e-mail confirmation with information about the other party."
+msgstr ""
+
+#: uc_bartering.module:879
+msgid "Cancel"
+msgstr ""
+
+#: uc_bartering.module:897
+msgid "No pending bid was found. A pending bid could have timed out. A bid is valid for 48 hours."
+msgstr ""
+
+#: uc_bartering.module:930
+msgid "Price adjustment"
+msgstr ""
+
+#: uc_bartering.module:985
+msgid "Reset to defaults"
+msgstr ""
+
+#: uc_bartering.module:1001
+msgid "Your bid on \"[bartering-product-name]\" has been accepted!"
+msgstr ""
+
+#: uc_bartering.module:1002
+msgid "Dear [bartering-buyer-name]\n\nWe're pleased to inform you that the seller has accepted your bid of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name]. You and the seller have now agreed to a binding contract for the sale of this sale item. \n\nAn order confirmation has been sent to you by e-mail. Please follow the instructions in the e-mail to complete the purchase.\n\nThanks for bargaining at [store-name]!\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1003
+msgid "Your bid on [bartering-product-name] has been rejected!"
+msgstr ""
+
+#: uc_bartering.module:1004
+msgid "Dear [bartering-buyer-name]\n\nThe seller of [bartering-product-name] has rejected your bid of [bartering-pending-amount] for [bartering-pending-qty] piece(s).\n\nReason:\n[bartering-message]\n\nYou can place a new bid on this sale item by logging in to your account on [store-name] and going to the product page.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-link]\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1005
+msgid "Your bid on [bartering-product-name] has expired!"
+msgstr ""
+
+#: uc_bartering.module:1006
+msgid "Dear [bartering-buyer-name]\n\nYour bid of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name] has expired. A bid will expire, if the seller doesn't respond to it within 48 hours.\n\nYou can place a new bid on this sale item by logging in to your account on [store-name] and going to the product page.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-link]\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1007
+msgid "The seller of [bartering-product-name] has made you a new offer!"
+msgstr ""
+
+#: uc_bartering.module:1008
+msgid "Dear [bartering-buyer-name]\n\nThe seller of [bartering-product-name] has rejected your bid of [bartering-pending-amount] for [bartering-pending-qty] piece(s) and made a new offer.\n\nReason:\n[bartering-message]\n\nThe seller has offered to sell you [bartering-new-qty] piece(s) of [bartering-product-name] for [bartering-new-amount]. The offer is binding for the seller, should you accept it within 48 hours from now.\n\nLog in to your account on [store-name] and go to the product page to accept the offer, reject it, or to place a counter-bid.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1009
+msgid "Your offer on [bartering-product-name] has been accepted!"
+msgstr ""
+
+#: uc_bartering.module:1010
+msgid "Dear [bartering-seller-name]\n\nWe're pleased to inform you that the buyer has accepted your offer of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name]. You and the buyer have now agreed to a binding contract for the sale of this sale item. \n\nAn order confirmation has been sent to you by e-mail. Please follow the instructions in the e-mail to complete the purchase.\n\nThanks for bargaining at [store-name]!\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1011
+msgid "Your offer on [bartering-product-name] has been rejected by [bartering-buyer-name]!"
+msgstr ""
+
+#: uc_bartering.module:1012
+msgid "Dear [bartering-seller-name]\n\nThe bidder, [bartering-buyer-name], has rejected your offer of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name].\n\nReason:\n[bartering-message]\n\nYou can make the bidder a new offer on this sale item by logging in to your account on [store-name] and going to the product page.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1013
+msgid "Your counter-bid on [bartering-product-name] has expired!"
+msgstr ""
+
+#: uc_bartering.module:1014
+msgid "Dear [bartering-seller-name]\n\nYour offer to sell [bartering-pending-qty] piece(s) of [bartering-product-name] for [bartering-pending-amount] to [bartering-buyer-name] has expired. A bid will expire, if the buyer doesn't respond to it within 48 hours.\n\nYou can make the buyer a new offer on this sale item by logging in to your account on [store-name] and going to the product page.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-link]\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1015
+msgid "[bartering-buyer-name] has made a new bid for [bartering-product-name]!"
+msgstr ""
+
+#: uc_bartering.module:1016
+msgid "Dear [bartering-seller-name]\n\nThe bidder, [bartering-buyer-name], of [bartering-product-name] has rejected your offer of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name] and made a new offer.\n\nReason:\n[bartering-message]\n\nThe bidder has offered to pay you [bartering-new-amount] for [bartering-new-qty] piece(s) of [bartering-product-name]. The offer is binding for the bidder, should you accept it within 48 hours from now.\n\nLog in to your account on [store-name] and go to the product page to accept the offer, reject it, or to place a counter-offer.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1017
+msgid "[bartering-buyer-name] has made a bid for [bartering-product-name]!"
+msgstr ""
+
+#: uc_bartering.module:1018
+msgid "Dear [bartering-seller-name]\n\nThe bidder, [bartering-buyer-name], has offered to pay you [bartering-new-amount] for [bartering-new-qty] piece(s) of [bartering-product-name]. The offer is binding for the bidder, should you accept it within 48 hours from now.\n\nLog in to your account on [store-name] and go to the product page to accept the offer, reject it, or to place a counter-offer.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"
+msgstr ""
+
+#: uc_bartering.module:1145
+msgid "Pending"
+msgstr ""
+
+#: uc_bartering.module:1145
+msgid "Rejected"
+msgstr ""
+
+#: uc_bartering.module:1145
+msgid "Expired"
+msgstr ""
+
+#: uc_bartering.module:1145
+msgid "Accepted"
+msgstr ""
+
+#: uc_bartering.module:1182
+msgid "User"
+msgstr ""
+
+#: uc_bartering.module:1182
+msgid "Time"
+msgstr ""
+
+#: uc_bartering.module:1182
+msgid "Bid"
+msgstr ""
+
+#: uc_bartering.module:1182
+msgid "Bid status"
+msgstr ""
+
+#: uc_bartering.module:1182
+msgid "Message"
+msgstr ""
+
+#: uc_bartering.module:1198
+msgid "Defaults"
+msgstr ""
+
+#: uc_bartering.module:1202
+msgid "New products are up for bargaining by default"
+msgstr ""
+
+#: uc_bartering.module:1203
+msgid "If checked, the new product form will have the <em>Allow customers to place a bid for this product</em> check box checked by default."
+msgstr ""
+
+#: uc_bartering.module:1209
+msgid "Allow quantity selection"
+msgstr ""
+
+#: uc_bartering.module:1210
+msgid "If checked, sellers can let buyers choose how many pieces of the product they are bidding on."
+msgstr ""
+
+#: uc_bartering.module:1219
+msgid "Notification for the buyer that his/her bid has been accepted by the seller"
+msgstr ""
+
+#: uc_bartering.module:1223
+msgid "Notify the buyer when his/her bid has been accepted"
+msgstr ""
+
+#: uc_bartering.module:1224
+msgid "Regardless of this setting, the system will process the order and send a receipt to the buyer, just as if the product had been bought normally in the store"
+msgstr ""
+
+#: uc_bartering.module:1230;1254;1278;1302;1328;1353;1377;1401;1425
+msgid "Notification message subject"
+msgstr ""
+
+#: uc_bartering.module:1236;1260;1284;1308;1334;1359;1383;1407;1431
+msgid "Notification message body"
+msgstr ""
+
+#: uc_bartering.module:1237
+msgid "The message emailed to the auction winner. <a href=\"!uses\">Uses bartering, product and global tokens</a>."
+msgstr ""
+
+#: uc_bartering.module:1244
+msgid "Notification for the customer that his/her bid has been rejected"
+msgstr ""
+
+#: uc_bartering.module:1248
+msgid "Notify the customer when his/her bid has been rejected (no counter-bid)"
+msgstr ""
+
+#: uc_bartering.module:1261;1285
+msgid "The message e-mailed to the buyer. <a href=\"!uses\">Uses bartering, product and global tokens</a>."
+msgstr ""
+
+#: uc_bartering.module:1268
+msgid "Notification for the customer that his/her bid has expired"
+msgstr ""
+
+#: uc_bartering.module:1272
+msgid "Notify the customer when his/her bid has expired"
+msgstr ""
+
+#: uc_bartering.module:1292
+msgid "Notification for the customer that his/her bid has been rejected, and a counter-bid has been made"
+msgstr ""
+
+#: uc_bartering.module:1296
+msgid "Notify the customer when his/her bid has been rejected, and a counter-bid has been made"
+msgstr ""
+
+#: uc_bartering.module:1309
+msgid "The message emailed to the buyer. <a href=\"!uses\">Uses bartering, product and global tokens</a>."
+msgstr ""
+
+#: uc_bartering.module:1318
+msgid "Notification for the seller that a new bid has been made on his product."
+msgstr ""
+
+#: uc_bartering.module:1322
+msgid "Notify the seller when a new bid has been made on one of his/her products"
+msgstr ""
+
+#: uc_bartering.module:1335;1384;1408;1432
+msgid "The message e-mailed to the seller. <a href=\"!uses\">Uses bartering, product and global tokens</a>."
+msgstr ""
+
+#: uc_bartering.module:1342
+msgid "Notification for the seller that his/her counter-bid has been accepted by the buyer"
+msgstr ""
+
+#: uc_bartering.module:1346
+msgid "Notify the seller when his/her counter-bid has been accepted"
+msgstr ""
+
+#: uc_bartering.module:1347
+msgid "Regardless of this setting, the system will process the order and send a receipt to the seller, just as if the product had been bought normally in the store"
+msgstr ""
+
+#: uc_bartering.module:1360
+msgid "The message e-mailed to the seller, when his/her counter-bid has been accepted by the buyer. <a href=\"!uses\">Uses bartering, product and global tokens</a>."
+msgstr ""
+
+#: uc_bartering.module:1367
+msgid "Notification for the seller that his/her counter-bid has been rejected"
+msgstr ""
+
+#: uc_bartering.module:1371
+msgid "Notify the seller when his/her counter-bid has been rejected (no new counter-bid)"
+msgstr ""
+
+#: uc_bartering.module:1391
+msgid "Notification for the seller that his/her counter-bid has expired"
+msgstr ""
+
+#: uc_bartering.module:1395
+msgid "Notify the seller when his/her counter-bid has expired"
+msgstr ""
+
+#: uc_bartering.module:1415
+msgid "Notification for the seller that his/her counter-bid has been rejected, and a new counter-bid has been made"
+msgstr ""
+
+#: uc_bartering.module:1419
+msgid "Notify the seller when his/her counter-bid has been rejected, and a new counter-bid has been made"
+msgstr ""
+
+#: uc_bartering.module:59
+msgid "place bartering bid"
+msgstr ""
+
+#: uc_bartering.module:59
+msgid "delete all bartering bids"
+msgstr ""
+
+#: uc_bartering.module:16
+msgid "Settings for bargaining."
+msgstr ""
+
+#: uc_bartering.module:24
+msgid "Products you have bid upon."
+msgstr ""
+
+#: uc_bartering.module:34
+msgid "See and act on bids for this product."
+msgstr ""
+
+#: uc_bartering.module:41
+msgid "Confirm deal"
+msgstr ""
+
+#: uc_bartering.module:0
+msgid "uc_bartering"
+msgstr ""
+
+#: uc_bartering.info:0
+msgid "UC Bartering"
+msgstr ""
+
+#: uc_bartering.info:0
+msgid "Bartering module for Ubercart"
+msgstr ""
+
+#: uc_bartering.info:0
+msgid "Ubercart - extra"
+msgstr ""
+

@@ -1,0 +1,7 @@
+; $Id$
+name = AuctionFlex
+description = Drupal module for accepting alt bids for AuctionFlex
+core = 6.x
+package = "Lagervarer"
+
+

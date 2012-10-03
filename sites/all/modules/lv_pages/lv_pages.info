@@ -1,0 +1,7 @@
+; $Id$
+name = LV Pages
+description = Custom pages for Lagervarer.dk
+core = 6.x
+package = "Lagervarer"
+
+

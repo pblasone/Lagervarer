@@ -1,0 +1,7 @@
+; $Id$
+name = LV Profiles
+description = Profile customizations for Lagervarer
+core = 6.x
+package = "Lagervarer"
+
+

@@ -1,0 +1,127 @@
+<?php
+// $Id$
+/**
+* Install the Ubercart bartering module:
+* Create uc_bartering_bids table for storing bids
+* @file
+*/
+
+/**
+* Implementation of hook_install().
+*/
+function uc_bartering_install() {
+	drupal_install_schema('uc_bartering');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function uc_bartering_uninstall() {
+	drupal_uninstall_schema('uc_bartering');
+}
+
+/**
+* Implementation of hook_schema(),
+*/
+function uc_bartering_schema() {
+	return array(
+		'uc_bartering_bids' => array(
+			'description' => 'Keeps tracks of bids on products.',
+			'fields' => array(
+				'bid' => array(
+					'description' => 'The ID number of the bid.',
+					'type' => 'serial',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),
+				'nid' => array(
+					'description' => 'The {node}.nid of the product.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'uid' => array(
+					'description' => 'The {user}.uid of the bidder.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'time' => array(
+					'description' => 'The time the bid was placed.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'qty' => array(
+					'description' => 'The quantity that was bid on.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),                
+				'amount' => array(
+					'description' => 'The amount that was bid.',
+					'type' => 'numeric',
+					'precision' => 15,
+					'scale' => 3,
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+                'status' => array(
+                	'description' => 'The status of the bid: 0 = Pending, 1 = Rejected, 2 = Expired, 3 = Accepted',
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 0,
+                ),
+                'parent' => array(
+                	'description' => 'The first bid from the buyer that this bid is countering. Counterbids can be made by both the seller and the original bidder.',
+                    'type' => 'int',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 0,
+                ), 
+                'message' => array(
+                	'description' => 'A custom message to send to the counterpart when bidding or rejecting a bid.',
+                    'type' => 'text',
+                    'not null' => TRUE,
+                    'default' => '',
+                ),                
+                    
+			),
+			'primary key' => array('bid'),
+			'indexes' => array(
+				'nid_time' => array('nid, time'),
+				'nid' => array('nid'),
+				'uid' => array('uid'),
+			),
+		),
+		'uc_bartering' => array(
+			'description' => 'Information about products are accepting bids.',
+			'fields' => array(
+				'nid' => array(
+					'description' => 'The {node}.nid of the product.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'is_multiple' => array(
+					'description' => 'Can the customer bid on more than one piece of the product?',
+					'type' => 'int',
+					'size' => 'tiny',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0, 
+                ),               
+			),
+			'primary key' => array('nid'),
+		),
+	);
+
+}

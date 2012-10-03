@@ -1,0 +1,192 @@
+# Danish translation of drupal (6.4)
+# Copyright (c) 2008 by the Danish translation team
+# Generated from files:
+#  dblog.admin.inc,v 1.6 2008/01/08 10:35:41 goba
+#  dblog.module,v 1.21.2.2 2008/04/09 21:11:46 goba
+#  dblog.install,v 1.6 2007/11/04 14:33:06 goba
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: drupal (6.4)\n"
+"POT-Creation-Date: 2008-08-25 02:53-0700\n"
+"PO-Revision-Date: 2008-08-18 01:29-0700\n"
+"Language-Team: Danish\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: modules/dblog/dblog.admin.inc:18
+msgid "Discard log entries above the following row limit"
+msgstr "Slet meddelelser over følgende grænse"
+
+#: modules/dblog/dblog.admin.inc:21
+msgid ""
+"The maximum number of rows to keep in the database log. Older entries will "
+"be automatically discarded. (Requires a correctly configured <a href=\"@cron"
+"\">cron maintenance task</a>.)"
+msgstr ""
+"Hvor mange rækker der gemmes i databaseloggen. Gamle meddelelser slettes "
+"automatisk. (Kræver at <a href=\"@cron\">cron er korrekt indstillet</a>.)"
+
+#: modules/dblog/dblog.admin.inc:81,109
+msgid "No log messages available."
+msgstr "Ingen hændelser tilgængelige."
+
+#: modules/dblog/dblog.admin.inc:97
+msgid "Count"
+msgstr "Antal"
+
+#: modules/dblog/dblog.admin.inc:140
+msgid "Location"
+msgstr "Placering"
+
+#: modules/dblog/dblog.admin.inc:152,220
+msgid "Severity"
+msgstr "Grad"
+
+#: modules/dblog/dblog.admin.inc:260
+msgid "Filter log messages"
+msgstr "Filtrer meddelelser"
+
+#: modules/dblog/dblog.admin.inc:297
+msgid "You must select something to filter by."
+msgstr "Du skal vælge, hvad du vil filtrere efter."
+
+#: modules/dblog/dblog.module:21
+msgid ""
+"The dblog module monitors your system, capturing system events in a log to "
+"be reviewed by an authorized individual at a later time. This is useful for "
+"site administrators who want a quick overview of activities on their site. "
+"The logs also record the sequence of events, so it can be useful for "
+"debugging site errors."
+msgstr ""
+"Databaseloggen overvåger dit system og gemmer hændelser i en log som kan "
+"gennemses af betroede individer på et senere tidspunkt. Det er nyttigt for "
+"administratorer, som ønsker et hurtigt overblik over aktiviterne på deres "
+"site. Loggen registrerer rækkefølgen af hændelser, så den kan være nyttig "
+"ved fejlsøgning på sitet."
+
+#: modules/dblog/dblog.module:22
+msgid ""
+"The dblog log is simply a list of recorded events containing usage data, "
+"performance data, errors, warnings and operational information. "
+"Administrators should check the dblog report on a regular basis to ensure "
+"their site is working properly."
+msgstr ""
+"Databaseloggen er en liste af hændelser, der indeholder data om brug, "
+"ydelse, fejl, advarsler og driftsinformation. Administratorer bør gennemgå "
+"loggen med jævne mellemrum, for at sikre at sitet fungerer korrekt."
+
+#: modules/dblog/dblog.module:23
+msgid ""
+"For more information, see the online handbook entry for <a href=\"@dblog"
+"\">Dblog module</a>."
+msgstr ""
+"Læs håndbogens afsnit om <a href=\"@blog\">databaseloggen</a> for yderligere "
+"information."
+
+#: modules/dblog/dblog.module:26
+msgid ""
+"The dblog module monitors your website, capturing system events in a log to "
+"be reviewed by an authorized individual at a later time. The dblog log is "
+"simply a list of recorded events containing usage data, performance data, "
+"errors, warnings and operational information. It is vital to check the dblog "
+"report on a regular basis as it is often the only way to tell what is going "
+"on."
+msgstr ""
+"Databaseloggen overvåger dit site. Den gemmer systemhændelser i en log, som "
+"kan gennemses af betroede individer på et senere tidspunkt. Databaseloggen "
+"er en liste af hændelser der viser brug, ydeevne, fejl, advarsler og "
+"driftsinformation. Det er vigtigt at gennemgå databaseloggen med jævne "
+"mellemrum, da den ofte er den eneste kilde til information om hvad der "
+"foregår."
+
+#: modules/dblog/dblog.module:47
+msgid ""
+"Settings for logging to the Drupal database logs. This is the most common "
+"method for small to medium sites on shared hosting. The logs are viewable "
+"from the admin pages."
+msgstr ""
+"Indstillinger for logføring til Drupals databaselog. Den mest anvendte "
+"metode på små og mellemstore sites på delt hosting. Logs kan ses fra "
+"administrationssiderne."
+
+#: modules/dblog/dblog.module:55
+msgid "Recent log entries"
+msgstr "Seneste loglinjer"
+
+#: modules/dblog/dblog.module:56
+msgid "View events that have recently been logged."
+msgstr "Vis seneste hændelser."
+
+#: modules/dblog/dblog.module:63
+msgid "Top 'page not found' errors"
+msgstr "Hyppige 'side ikke fundet'-fejl"
+
+#: modules/dblog/dblog.module:64
+msgid "View 'page not found' errors (404s)."
+msgstr "Vis 'side ikke fundet'-fejl (404)."
+
+#: modules/dblog/dblog.module:71
+msgid "Top 'access denied' errors"
+msgstr "Hyppige 'adgang nægtet'-fejl"
+
+#: modules/dblog/dblog.module:72
+msgid "View 'access denied' errors (403s)."
+msgstr "Vis 'adgang nægtet'-fejl (403)."
+
+#: modules/dblog/dblog.module:0
+msgid "dblog"
+msgstr "dblog"
+
+#: modules/dblog/dblog.install:25
+msgid "Table that contains logs of all system events."
+msgstr "Tabellen som indeholder en log af alle systemhændelser."
+
+#: modules/dblog/dblog.install:30
+msgid "Primary Key: Unique watchdog event ID."
+msgstr "Primær nøgle: Unik hændelses-ID."
+
+#: modules/dblog/dblog.install:36
+msgid "The {users}.uid of the user who triggered the event."
+msgstr "{users}.uid for brugeren som udløste hændelsen."
+
+#: modules/dblog/dblog.install:43
+msgid "Type of log message, for example \"user\" or \"page not found.\""
+msgstr "Beskedtypen, f.eks. \"bruger\" eller \"side ikke fundet\"."
+
+#: modules/dblog/dblog.install:49
+msgid "Text of log message to be passed into the t() function."
+msgstr "Beskeden som sendes gennem t()-funktionen."
+
+#: modules/dblog/dblog.install:55
+msgid ""
+"Serialized array of variables that match the message string and that is "
+"passed into the t() function."
+msgstr ""
+"Serialiseret array af variable, som svarer til beskeden, og som sendes "
+"gennem t()-funktionen."
+
+#: modules/dblog/dblog.install:63
+msgid "The severity level of the event; ranges from 0 (Emergency) to 7 (Debug)"
+msgstr "Hændelsens alvorlighed fra 0 (nødsituation) til 7 (debug)"
+
+#: modules/dblog/dblog.install:70
+msgid "Link to view the result of the event."
+msgstr "Link til hændelses resultat."
+
+#: modules/dblog/dblog.install:75
+msgid "URL of the origin of the event."
+msgstr "URL hvor hændelsen startede."
+
+#: modules/dblog/dblog.install:82
+msgid "URL of referring page."
+msgstr "URL for henvisende side."
+
+#: modules/dblog/dblog.install:89
+msgid "Hostname of the user who triggered the event."
+msgstr "Værtsnavn for brugeren, der udløste hændelsen."
+
+#: modules/dblog/dblog.install:95
+msgid "Unix timestamp of when event occurred."
+msgstr "Unix timestamp da hændelsen foregik."

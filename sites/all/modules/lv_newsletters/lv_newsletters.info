@@ -1,0 +1,8 @@
+; $Id$
+name = LV Newsletters
+description = Newsletters management and MailChimp modifications
+dependencies[] = mailchimp
+core = 6.x
+package = "Lagervarer"
+
+

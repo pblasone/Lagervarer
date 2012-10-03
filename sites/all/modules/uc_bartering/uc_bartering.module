@@ -1,0 +1,1784 @@
+<?php
+// $Id$
+
+/**
+* @file
+* Bartering module for Ubercart. Allows customers to bid on products, and sellers can make counter-bids. The system uses e-mail to notify about new bids.
+*/
+
+/**
+* Implementation of hook_menu()
+*/      
+function uc_bartering_menu() {
+	$items = array(
+		'admin/store/settings/bartering' => array(
+			'title' => 'Bargaining settings',
+			'description' => 'Settings for bargaining.',
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array('uc_bartering_settings_form'),
+			'access arguments' => array('administer store'),
+		),	
+		'user/%user/bids' => array(
+			'title' => 'Bids',
+			'type' => MENU_LOCAL_TASK,
+			'description' => 'Products you have bid upon.',
+			'page callback' => 'uc_bartering_user_bids',
+			'page arguments' => array(1, 'active'),
+			'access callback' => 'uc_bartering_user_bids_perm',
+			'access arguments' => array(1),
+			'weight' => 8,
+		), 
+		'node/%node/bids' => array(
+			'title' => 'Bids',
+			'type' => MENU_LOCAL_TASK,
+			'description' => 'See and act on bids for this product.',
+			'page callback' => 'uc_bartering_node_bids',
+			'page arguments' => array(1),
+			'access callback' => 'uc_bartering_node_bids_perm',
+			'access arguments' => array(1),
+		),
+		'node/%node/bids/%/confirm' => array(
+			'title' => 'Confirm deal',
+			'type' => MENU_CALLBACK,
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array('uc_bartering_accept_confirm_form', 3),
+			'access callback' => 'uc_bartering_accept_confirm_perm',
+			'access arguments' => array(3),
+		),        
+	);        
+
+    return $items;       
+        
+}       
+
+
+/**
+ * Implementation of hook_perm().
+ */
+function uc_bartering_perm() {
+	return array('place bartering bid', 'delete all bartering bids');
+}       
+
+
+/**
+ * Implementation of hook_theme().
+ */
+function uc_bartering_theme($existing, $type, $theme, $path) {
+	return array(
+		'uc_bartering_bid_table' => array(
+			'arguments' => array('form' => NULL),
+		),
+	);
+}      
+
+
+/**
+ * Implementation of hook_cron(). 
+ */
+function uc_bartering_cron() {
+	$rez = db_query('SELECT bid, parent FROM {uc_bartering_bids} WHERE status = 0');
+	while ($record = db_fetch_object($rez)) {
+		if ($rez['parent'] > 0) {
+			$bid_session = uc_bartering_get_session($rez['parent']);        
+        } else {
+			$bid_session = uc_bartering_get_session($rez['bid']);        
+        }
+	}
+}
+
+
+
+/**
+ * Implementation of hook_form_alter().
+ */
+
+function uc_bartering_form_alter(&$form, $form_state, $form_id) {
+	// We want to alter the form if it is of the form "foo_node_form" and foo is
+	// an Ubercart product type.
+	if (preg_match('/^(.+)_node_form$/', $form_id, $matches) && in_array($matches[1], module_invoke_all('product_types'))) {
+		// This is the node editing form for an Ubercart product type. Add options
+		// to make this item open for bartering.
+		$is_curr_bartering = isset($form['#node']->uc_bartering);
+		$is_new_bartering = !isset($form['#node']->nid) && !$is_curr_auction && variable_get('uc_bartering_new_default', FALSE);
+		$form['base']['bartering'] = array(
+			'#type' => 'fieldset',
+			'#title' => t('Bargaining settings'),
+			'#collapsible' => TRUE,
+			'#collapsed' => !$is_curr_bartering && !$is_new_bartering,
+			'#weight'=> 8,
+			'is_bartering' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Make this product available for bargaining.'),
+				'#description' => $is_curr_bartering ? t('Warning: Unchecking this box will stop this product from being up for bargaining and its <a href="!blink">current bids</a> will be rejected.', array('!blink' => url("node/{$form['#node']->nid}/bids"))) : t('Users can bid on the product, and you can reject their bid, accept it or make a counter-bid. If you make a counter-bid, the user can counter your bid, etc. until you hopefully agree on a price.'),
+				'#default_value' => $is_curr_bartering || $is_new_bartering,
+				'#weight' => 0,
+			),               
+		);
+        
+		if (variable_get('uc_bartering_is_multiple', FALSE)) {
+			$form['base']['bartering']['is_multiple'] = array(
+				'#type' => 'checkbox',
+				'#title' => t('The customer can bid for more than one piece.'),
+				'#description' => t('Check this box to allow customers to place a bid for more than one piece of the sale item. If a stock level is set for the product, this will be the maximum quantity a customer can bid on. If not, the customer can bid on an unlimited quantity of the item.'),
+				'#default_value' => $is_curr_bartering ? $form['#node']->uc_bartering['is_multiple'] : FALSE,
+				'#weight' => 0,
+			);            
+		}
+        
+        
+//        if isset($form['base']['auction']) {
+//			if (strlen($form['base']['auction']['is_auction']['#description']) > 0) { $form['base']['auction']['is_auction']['#description'] .= t('<br />') }
+//            $form['base']['auction']['is_auction']['#description'] .= t('NOTE: When a product is on auction, bartering for the product will be disabled while the auction is running.');
+//        }
+
+
+	}
+	elseif ($form_id === 'uc_product_field_settings_form') {
+		// Add our own field settings to this form. If/when this form is updated to
+		// support D6 drag-and-drop reordering, this will have to be updated.
+		// Keep defaults in synch with the variable_get() in hook_nodeapi()
+		$fields = variable_get('uc_bartering_field_settings', array(
+			'uc_bartering_box' => array(
+				'enabled' => TRUE,
+				'weight' => -3,
+			),
+		));
+		$form['fields']['uc_bartering_box'] = array(
+			'enabled' => array(
+				'#type' => 'checkbox',
+				'#default_value' => $fields['uc_bartering_box']['enabled'],
+			),
+			'title' => array(
+				'#type' => 'markup',
+				'#value' => t('Bartering box'),
+			),
+			'weight' => array(
+				'#type' => 'weight',
+				'#delta' => 10,
+				'#default_value' => $fields['uc_bartering_box']['weight'],
+			),
+		);
+		// Resort the list, without #properties
+		$props = array();
+		$children = array();
+		foreach ($form['fields'] as $key => $val) {
+			if (strpos($key, '#') === 0) {
+				$props[$key] = $val;
+			}
+			else {
+				$children[$key] = $val;
+			}
+		}
+		uasort($children, 'uc_weight_sort');
+		$form['fields'] = $props + $children;
+		$form['#submit'][] = 'uc_bartering_field_settings_submit';
+		$form['buttons']['reset']['#submit'][] = 'uc_bartering_field_settings_submit';
+	}
+}
+
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function uc_bartering_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+global $user;
+	if (_uc_bartering_is_uc_type($node)) {
+		if ($op === 'insert' && $node->is_bartering) {
+
+			// This product is open for bartering. Write the info to uc_bartering.
+			$record = array(
+				'nid' => $node->nid, 
+                'is_multiple' => $node->is_multiple,
+			);
+			drupal_write_record('uc_bartering', $record);
+		}
+		elseif ($op === 'update') {
+			if (db_result(db_query('SELECT nid FROM {uc_bartering} WHERE nid = %d', $node->nid))) {
+				// This is a previously-existing bartering. Are we baleeting it?
+				if ($node->is_bartering) {
+					$record = array(
+						'nid' => $node->nid, 
+    	    	        'is_multiple' => $node->is_multiple,
+					);
+					drupal_write_record('uc_bartering', $record, 'nid');                
+				}                   
+                else {
+					// Bartering is no longer enabled, so delete bartering info and reject pending bids.
+					$rs = db_query('SELECT bid FROM {uc_bartering_bids} WHERE parent = 0 AND nid = %d', $node->nid);                    
+                    while ($first_bid = db_fetch_array($rs)) {
+						$bid_session = uc_bartering_get_session($first_bid);
+                        if (isset($bid_session['pending_bid'])) {	                  
+				        	$bid_session['message'] = t('It is no longer possible to place bids on this product.');
+                            $recipient_user = user_load($bid_session['pending_bid']['uid']);
+					        drupal_mail('uc_bartering', 'uc_bartering_notify_'.$recipient_status.'_rejected', $recipient_user->mail, user_preferred_language($recipient_user), array('node' => $node, 'user' => $recipient_user, 'bid_session' => $bid_session));        
+                        }
+                    }
+					db_query('DELETE FROM {uc_bartering} WHERE nid = %d', $node->nid);
+					db_query('DELETE FROM {uc_bartering_bids} WHERE nid = %d', $node->nid);             
+                }
+			}
+			elseif ($node->is_bartering) {
+				// This is a previously-existing product which is now open for bidding.
+				$record = array(
+					'nid' => $node->nid,
+        	        'is_multiple' => $node->is_multiple,
+				);
+				drupal_write_record('uc_bartering', $record);
+			}
+		}
+		elseif ($op === 'delete') {
+			// We won't bother checking to see if this product was up for bartering - we'll just
+			// delete anything that might be there.
+					$rs = db_query('SELECT bid FROM {uc_bartering_bids} WHERE parent = 0 AND nid = %d', $node->nid);                    
+                    while ($first_bid = db_fetch_array($rs)) {
+						$bid_session = uc_bartering_get_session($first_bid);
+                        if (isset($bid_session['pending_bid'])) {	                  
+				        	$bid_session['message'] = t('This product is no longer available for sale, and all pending bids for it have been deleted.');
+                            $recipient_user = user_load($bid_session['pending_bid']['uid']);
+							$recipient_status = $recipient_user->uid == $node->uid ? 'seller' : 'user';                            
+					        drupal_mail('uc_bartering', 'uc_bartering_notify_'.$recipient_status.'_rejected', $recipient_user->mail, user_preferred_language($recipient_user), array('node' => $node, 'user' => $recipient_user, 'bid_session' => $bid_session));        
+                        }
+                    }
+					db_query('DELETE FROM {uc_bartering} WHERE nid = %d', $node->nid);
+					db_query('DELETE FROM {uc_bartering_bids} WHERE nid = %d', $node->nid);           
+		}
+		elseif ($op === 'load') {
+			if ($result = db_fetch_array(db_query('SELECT is_multiple, (SELECT Count(*) FROM {uc_bartering_bids} WHERE nid = %d AND uid != %d) AS bids FROM {uc_bartering} WHERE nid = %d', $node->nid, $node->uid, $node->nid))) {
+				// Disse to er egentlig at registrere det dobbelt og kun de 2 øverste linier bør bruges, men så skal der ændres mange steder
+				$node->is_bartering = TRUE;
+                $node->is_multiple = $result['is_multiple']; 
+				$node->uc_bartering = array(
+                	'is_multiple' => $result['is_multiple'],
+                    'bid_count' => $result['bids'],
+                );
+               
+				if ($user->uid != $node->uid) {
+	    	        if ($first_bid = db_fetch_array(db_query('SELECT bid, uid, time, qty, amount, status FROM {uc_bartering_bids} WHERE parent = 0 AND uid = %d AND nid = %d ORDER BY bid DESC', $user->uid, $node->nid))) {                                    
+						$node->uc_bartering['first_bid'] = $first_bid;                                                             
+						$node->uc_bartering['bid_history'] = uc_bartering_session_bids($first_bid['bid'], 1);                    
+    	        	    if ($newest_bid = db_fetch_array(db_query('SELECT bid, uid, time, qty, amount, status FROM {uc_bartering_bids} WHERE parent = %d ORDER BY bid DESC LIMIT 1', $first_bid['bid']))) {
+							$node->uc_bartering['newest_bid'] = $newest_bid;
+    	    	        } else {         
+                	       	$node->uc_bartering['newest_bid'] = $first_bid;
+                    	}
+	                } 
+				}                    
+
+            }        
+		}            
+		elseif ($op === 'view' && (isset($node->uc_bartering['first_bid']) || (!isset($node->uc_auction) && isset($node->uc_bartering)))) {
+			// Keep defaults in synch with the variable_get() in hook_form_alter()
+			$fields = variable_get('uc_bartering_field_settings', array(
+				'uc_bartering_box' => array(
+					'enabled' => TRUE,
+					'weight' => -3,
+				),
+			));
+			if ($fields['uc_bartering_box']['enabled']) {
+				$node->content['uc_bartering'] = array(
+					'#value' => drupal_get_form('uc_bartering_bid_form', $node, 0),
+					'#weight' => $fields['uc_bartering_box']['weight'],
+				);
+			}
+		}
+	}
+} 
+
+/**
+ * Implementation of hook_forms().
+ */
+function uc_bartering_forms($form_id) {
+  $forms = array();
+  if (strpos($form_id, "uc_bartering_bid_form") === 0) {
+    $forms[$form_id] = array('callback' => 'uc_bartering_bid_form');
+  }
+  return $forms;
+}
+
+             
+
+/**
+ * Implementation of hook_token_list() (a Token hook).
+ */
+function uc_bartering_token_list($type = 'all') {
+	return array(
+		'bartering' => array(
+			'bartering-product-url' => t('The url for the product display page'),
+			'bartering-product-bid-url' => t('The url directly to the bidding page for the product'),
+			'bartering-product-name' => t('The name of the product'),                                       
+			'bartering-pending-amount' => t('The formatted bid amount for the currently pending bid (if any)'),
+            'bartering-pending-qty' => t('The quantity of the product that the currently pending bid (if any) was for'),
+			'bartering-new-amount' => t('The formatted bid amount for the new bid (if any)'),
+            'bartering-new-qty' => t('The quantity that was bid on in the new bid (if any)'),
+            'bartering-buyer-name' => t('The username for the bidder (potential buyer) in this bidding session'),
+            'bartering-seller-name' => t('The username for the seller of this product'),
+            'bartering-message' => t('The message for the counterpart in case of counterbidding or rejection'),
+		),
+	);
+} 
+
+/**
+ * Implementation of hook_token_values (a Token hook).
+ */
+function uc_bartering_token_values($type, $object = NULL) {
+	if ($type === 'node') {
+    	return array (
+			'bartering-product-url' => url('node/' . $object->nid, array('absolute' => TRUE)),
+			'bartering-product-bid-url' => url('node/' . $object->nid . '/bids', array('absolute' => TRUE)),
+			'bartering-product-name' => $object->title,                                       
+        );
+	}        
+	if ($type === 'bartering') {
+		$buyer = user_load($object['buyer']);
+		$seller = user_load($object['seller']);  
+		return array(
+			'bartering-pending-amount' => isset($object['pending_bid_amount']) ? uc_currency_format($object['pending_bid_amount']) : '',
+            'bartering-pending-qty' => isset($object['pending_bid_qty']) ? $object['pending_bid_qty'] : '',
+			'bartering-new-amount' => isset($object['new_bid_amount']) ? uc_currency_format($object['new_bid_amount']) : '',
+            'bartering-new-qty' => isset($object['new_bid_qty']) ? $object['new_bid_qty'] : '',
+            'bartering-buyer-name' => $buyer->name,
+            'bartering-seller-name' => $seller->name,
+            'bartering-message' => $object['pending_bid_message'],
+		);
+	}
+}  
+     
+
+/**
+ * Implementation of hook_mail().
+ */
+
+function uc_bartering_mail($key, &$message, $params) {
+
+		// For some reason, a nested array causes a validation error in the token_replace_multiple function, so we have to move everything to the root.
+        if (isset($params['bid_session']['pending_bid'])) {
+			$params['bid_session']['pending_bid_amount'] = $params['bid_session']['pending_bid']['amount'];        
+			$params['bid_session']['pending_bid_qty'] = $params['bid_session']['pending_bid']['qty'];            
+			$params['bid_session']['pending_bid_message'] = $params['bid_session']['pending_bid']['message'];                        
+			unset($params['bid_session']['pending_bid']);				
+        }
+        if (isset($params['bid_session']['new_bid'])) {
+			$params['bid_session']['new_bid_amount'] = $params['bid_session']['new_bid']['amount'];        
+			$params['bid_session']['new_bid_qty'] = $params['bid_session']['new_bid']['qty'];            
+			unset($params['bid_session']['new_bid']);				
+        }        
+
+		$message['body'] = token_replace_multiple(
+			variable_get($key.'_msg', uc_get_message($key.'_msg')),
+			array('global' => NULL, 'node' => $params['node'], 'bartering' => $params['bid_session'])
+		);
+		$message['subject'] = token_replace_multiple(
+			variable_get($key.'_subj', uc_get_message($key.'_subj')),
+			array('global' => NULL, 'node' => $params['node'], 'bartering' => $params['bid_session'])
+		);
+}	
+         
+
+
+
+/* drupal_get_form() callbacks ********************************************** */
+
+
+/**
+ * Describe the bid form table.
+ *
+ * This produces a table with basic information about the item
+ * (number of bids). If the node is not being viewed as a teaser, it adds controls users will use to
+ * place a bid, if they have permission to do so.
+ *
+ * @param $form_state
+ *   The obligatory $form_state parameter.
+ * @param $node
+ *   The node object to build a form for.
+ * @param $first_bid
+ *   The first bid in this bid session. If the seller accesses the form, it will always be to respond to a bid from
+ *   a user. This first bid from the user will be the reference for the bid session. If a buyer accesses the form,
+ *   this variable will be ignored, and the value will be taken from the db instead.
+ * @op
+ *   The requested type of action.
+ */
+
+function uc_bartering_bid_form(&$form_state, $node, $first_bid = 0) {
+	global $user; 
+                              
+	$form = array(
+    	'#theme' => 'uc_bartering_bid_table',
+        '#submit' => array('uc_bartering_bid_form_submit'),
+        '#validate' => array('uc_bartering_bid_form_validate'),
+		'nid' => array(
+			'#type' => 'value',
+			'#value' => $node->nid,
+		),
+		'bid_count' => array(
+			'#title' => t('Bids'),
+			'#type' => 'item',
+			'#value' => $user->uid == $node->uid ? l($node->uc_bartering['bid_count'], "node/{$node->nid}/bids", array('title' => t('See bid history for this item'))) : $node->uc_bartering['bid_count'],
+			'#weight' => 0,
+		),
+	);
+
+    if (isset($node->uc_bartering['first_bid'])) {
+    	$first_bid = $node->uc_bartering['first_bid']['bid'];
+	}        
+     
+    if ($first_bid > 0) {   
+    	$bid_session = uc_bartering_get_session($first_bid);
+        $bid_table = uc_bartering_session_bids($first_bid, 1);
+
+		$form['first_bid'] = array(
+			'#type' => 'value',
+			'#value' => $first_bid,
+		);
+        $form['bid_history'] = array(
+        	'#type' => 'item',
+            '#value' => $bid_table,
+        );        
+   		$form['bid_session'] = array(
+			'#type' => 'value',
+			'#value' => $bid_session,
+		);
+
+    }                    
+
+	$default_qty = isset($bid_session['pending_bid']) ? $bid_session['pending_bid']['qty'] : 1;
+
+	if ($user->uid && $bid_session['pending_bid']['uid'] == $user->uid) {
+		$form['cant_bid'] = array(
+		 	'#type' => 'item',
+			'#description' => t('Your bid is awaiting action from the other part. Meanwhile, you cannot place another bid.'),
+			'#weight' => 6,
+		);
+	}
+	elseif ($bid_session['status'] == 3) {
+		if ($user->uid == $node->uid) {
+			$form['cant_bid'] = array(
+				'#type' => 'item',
+				'#description' => t('Congratulations with the sale!'),
+				'#weight' => 6,
+			);					                    
+        }
+        else {
+			$form['cant_bid'] = array(
+				'#type' => 'item',
+				'#description' => t('Congratulations with the deal! To bid for more pieces of this sale item, please start a new bidding session by pressing the button below.'),
+				'#weight' => 6,
+			);					            
+			$form['clear_bids'] = array(
+				'#type' => 'submit',  
+            	'#name' => 'clear_bids',
+				'#value' => t('Clear bidding history'),
+				'#description' => t('Your bidding history for this product will be deleted, and you can place a new bid.'),
+				'#weight' => 8,
+			);    
+        }            
+    }
+    elseif ($first_bid == 0 && $node->uid == $user->uid) {
+		$form['cant_bid'] = array(
+			'#type' => 'item',
+			'#description' => t('This is your own sale item. Click on the bid count to see and respond to bids on this product.'),
+			'#weight' => 6,
+		);	
+    } 
+    else {
+
+    if (variable_get('uc_bartering_is_multiple', FALSE) && $node->uc_bartering['is_multiple'] && (!$node->use_stock || $node->stock_level > 1)) {
+        
+		$form['qty'] = array(
+			'#title' => t('Quantity'),    
+			'#type' => 'textfield',
+            '#default_value' => $default_qty,
+			'#size' => 5,
+			'#weight' => 6,
+            '#required' => TRUE,
+		);
+        
+        if ($node->use_stock) {
+			$form['qty']['#description'] = t('Maximum <strong>!number</strong> items.', array('!number' => $node->stock_level));			        
+        }        
+     }
+     
+	 $form['user_bid'] = array(
+ 			'#title' => t('Your bid'),      
+			'#type' => 'textfield',
+			'#size' => 12,
+			'#weight' => 6,                                       
+	);
+	if (variable_get('uc_sign_after_amount', FALSE)) {
+		$form['user_bid']['#field_suffix'] = variable_get('uc_currency_sign', '$');
+	}
+	else {
+		$form['user_bid']['#field_prefix'] = variable_get('uc_currency_sign', '$');
+	} 
+
+    if ($first_bid > 0) {
+	    $form['message'] = array(
+    		'#title' => t('Select a pre-defined message to the counterpart'),
+    		'#type' => 'select',
+	        '#options' => array(
+    	    	t('(None)') => t('(None)'),
+        	    t('Your bid is way too high!') => t('Your bid is way too high!'),
+            	t('I was hoping for a better deal!') => t('I was hoping for a better deal!'),
+	            t('I need you to stretch a little bit more on the price!') => t('I need you to stretch a little bit more on the price!'),
+		    ),
+		);
+    	$form['custom_message'] = array(
+			'#title' => t('Or type in your own message'),
+    		'#type' => 'textarea',
+        	'#cols' => 40,
+	        '#rows' => 5,
+    	    '#description' => t('You can select one of our pre-defined messages or type in your own. This is not required, however.'),
+	    );
+    }
+    else {
+    	$form['custom_message'] = array(
+			'#title' => t('Message'),
+    		'#type' => 'textarea',
+        	'#cols' => 10,
+	        '#rows' => 2,
+	    );    
+    }
+    
+	$form['place_bid'] = array(
+		'#type' => 'submit',
+       	'#name' => 'place_bid',                    
+		'#value' => t('Place bid'),
+		'#description' => t('Your bid will be binding for 48 hours.'),
+		'#weight' => 8,
+	);
+
+   	if (isset($bid_session['pending_bid']) && $bid_session['pending_bid']['uid'] != $user->uid) {    
+		$form['reject_bid'] = array(
+			'#type' => 'submit',
+        	'#name' => 'reject_bid',
+			'#value' => t('Reject bid'),
+			'#description' => t('You reject the last bid from the seller without placing a new bid yourself.'),
+			'#weight' => 8,
+		);         
+
+   		$form['accept_bid'] = array(
+			'#type' => 'submit',
+   	    	'#name' => 'accept_bid',                        
+			'#value' => t('Accept deal'),
+			'#description' => t("You agree to the seller's last bid."),
+			'#weight' => 8,
+		);     
+	}
+        
+    } // pending bid uid = user->uid
+    
+   	return $form; 
+}    
+
+
+/**
+ * Validate the product page bid form. Redirect anonymous users to login page.
+ */
+
+function uc_bartering_bid_form_validate($form, &$form_state) {
+	global $user;
+
+	if (!$user->uid) {
+	  drupal_goto('user/register');
+	}
+
+    $node = node_load($form_state['values']['nid']);
+
+	switch ($form_state['clicked_button']['#name']) {
+		case 'place_bid':
+			if ($node->uid == $user->uid && $form_state['values']['first_bid'] === 0) {
+				form_set_error($form_state['name'], t('An error has occured. Please contact the site administrator.'));			        			        				            
+            }
+			if (isset($form_state['values']['qty']) && intval($form_state['values']['qty']) < intval($node->default_qty)) {    
+				form_set_error('qty', t('You must bid for at least !number pieces of this item.', array('!number' => $node->default_qty)));
+			}
+		    elseif (variable_get('uc_bartering_is_multiple', FALSE) && $node->uc_bartering['is_multiple'] && $node->use_stock && $form_state['values']['qty'] > $node->stock_level) {    
+				form_set_error('qty', t('The quantity is too high. You can bid for maximum !number of this item.', array('!number' => $node->stock_level)));
+			}
+            elseif (isset($form_state['values']['qty']) && $form_state['values']['qty'] == 0) {
+				form_set_error('qty', t('The quantity cannot be 0. You must bid for at least 1 piece of this item.'));			        			        
+        	}
+    
+		  $pattern = '/^\d*(,\d{0,2})?$/';
+		  $price_error = t('Price must be in a valid number format. No thousands separator and only one decimal point.');
+  	      if (!$form_state['values']['user_bid']) {
+			  form_set_error('user_bid', t('You must enter a bid amount.'));			        
+          }
+		  elseif (!is_numeric($form_state['values']['user_bid']) && !preg_match($pattern, $form_state['values']['user_bid'])) {
+			  form_set_error('user_bid', $price_error);
+		  }
+          else {
+			$form_state['values']['user_bid'] = str_replace(',', '.', $form_state['values']['user_bid']);           
+          } 
+          break;
+
+		case 'reject_bid': case 'accept_bid':
+			if ($node->uc_bartering['newest_bid']['uid'] == $user->uid) {
+				form_set_error($form_state['name'], t('An error has occured. Please contact the site administrator.'));			        				            
+            } elseif ($node->uc_bartering['newest_bid']['status'] !== 0) {
+				form_set_error($form_state['name'], t('The requested action can only be performed on pending bids. There are no pending bids on this sale item.'));			        				                        
+            }
+	}        
+}    
+
+
+ 
+/**
+ * Submit placed bids.
+ */
+
+function uc_bartering_bid_form_submit($form, &$form_state) {
+
+	global $user;
+	$node = node_load($form_state['values']['nid']);
+    $qty = (int)$form_state['values']['qty'] > 0 ? (int)$form_state['values']['qty'] : 1;
+    $bid_session = uc_bartering_get_session($form_state['values']['first_bid']);
+	$message = strlen($form_state['values']['custom_message']) > 0 ? check_plain($form_state['values']['custom_message']) : check_plain($form_state['values']['message']);
+
+	if ($user->uid == $node->uid) {
+    	$recipient_user = user_load($bid_session['buyer']);
+        $recipient_status = 'user';
+    } else {
+    	$recipient_user = user_load($node->uid);
+        $recipient_status = 'seller';
+    }          
+    
+	switch ($form_state['clicked_button']['#name']) {
+    case 'clear_bids':
+        if (isset($bid_session['pending_bid'])) {   
+        	$bid_session['pending_bid']['message'] = t('This bidding session has been deleted by a [store-name] site administrator. All pending bids have been rejected. If you have questions regarding this, please contact [store-name] support.');
+	        drupal_mail('uc_bartering', 'uc_bartering_notify_'.$recipient_status.'_rejected', $recipient_user->mail, user_preferred_language($recipient_user), array('node' => $node, 'user' => $recipient_user, 'bid_session' => $bid_session));        
+    	}
+		uc_bartering_delete_bids($bid_session['first_bid']);         
+		break;	
+    case 'accept_bid': 
+		$form_state['redirect'] = 'node/'.$bid_session['nid'].'/bids/'.$bid_session['first_bid'].'/confirm';
+		break;    
+    case 'reject_bid':      
+        if (isset($bid_session['pending_bid'])) {   
+			$bid_session['pending_bid']['message'] = $message; 
+            $bid_session['rejector'] = $user->name;           
+    	    uc_bartering_reject_bids($bid_session);				
+        	drupal_mail('uc_bartering', 'uc_bartering_notify_'.$recipient_status.'_rejected', $recipient_user->mail, user_preferred_language($recipient_user), array('node' => $node, 'user' => $recipient_user, 'bid_session' => $bid_session));
+		}
+		break;
+	case 'place_bid':  
+	// If the user made a new bid, insert it, reject any former bids and send notification mails
+		$bid_record = array(
+			'nid' => $node->nid,
+			'uid' => $user->uid,
+			'time' => time(),
+			'qty' => variable_get('uc_bartering_is_multiple', FALSE) && $node->uc_bartering['is_multiple'] ? $qty : 1,       
+			'amount' => $form_state['values']['user_bid'],
+			'status' => 0,
+	        'parent' => !is_nan($form_state['values']['first_bid']) ? $form_state['values']['first_bid'] : 0,
+			'message' => $message,
+		);
+        
+        if (!isset($bid_session['nid'])) {
+			$bid_session['nid'] = $node->nid;
+            $bid_session['buyer'] = $user->uid;        
+			$bid_session['seller'] = $node->uid;        
+        }
+        
+        $bid_session['new_bid'] = $bid_record;
+        $bid_session['message'] = $message;        
+        
+        if (isset($bid_session['pending_bid'])) {
+	        uc_bartering_reject_bids($bid_session);
+    	    drupal_mail('uc_bartering', 'uc_bartering_notify_'.$recipient_status.'_counter', $recipient_user->mail, user_preferred_language($recipient_user), array('node' => $node, 'user' => $recipient_user, 'bid_session' => $bid_session));
+        } else {
+    	    drupal_mail('uc_bartering', 'uc_bartering_notify_'.$recipient_status.'_new', $recipient_user->mail, user_preferred_language($recipient_user), array('node' => $node, 'user' => $recipient_user, 'bid_session' => $bid_session));			        
+        }
+	   	drupal_write_record('uc_bartering_bids', $bid_record);        
+	}          
+}  
+          
+
+
+
+
+/**
+ * Theme the bid table.
+ *
+ * @param $form
+ *   The form to theme.
+ * @returr
+ *   The themed form.
+ */
+function theme_uc_bartering_bid_table($form) {
+	$rows = array();
+
+    if (isset($form['bid_history'])) {
+		$rows[] = array( // tr
+			array( // td
+				'data' => t('Bid history'),
+				'class' => 'uc-bartering-bid-history-hdr',
+                'header' => TRUE,
+				'colspan' => 3,
+			),
+		); 
+		$rows[] = array( // tr
+			array( // td
+				'data' => $form['bid_history']['#value'],
+				'class' => 'uc-bartering-bid-history',
+				'colspan' => 3,
+			),
+		); 
+
+		if (isset($form['accept_bid'])) {
+			$rows[] = array( // tr
+				array( // td
+					'data' => drupal_render($form['accept_bid']),
+					'class' => 'uc-bartering-accept-bid',
+					'colspan' => 3,
+				),
+			);        
+		}
+
+        if (isset($form['place_bid'])) {
+			$rows[] = array( // tr
+				array( // td
+					'data' => isset($form['reject_bid']) ? t('Reject pending bid or place a new counter-bid') : t('Place a new bid on this item'),
+					'class' => 'uc-bartering-reject-hdr',
+                	'header' => TRUE,
+					'colspan' => 3,
+				),
+			);                 
+		}            
+    }
+    else {
+    
+    $rows = array();
+	    if ($form['#parameters'][2]->type == 'consumer' && floatval($form['#parameters'][2]->list_price) > 0) {
+			$rows[] = array( // tr
+				array( // th
+					'header' => TRUE,
+					'data' => t('List price'),
+					'class' => 'uc-bartering-list-price-hdr',
+				),
+				array( // td
+					'data' => uc_currency_format($form['#parameters'][2]->list_price),
+					'class' => 'uc-bartering-list-price',
+				),                                                               
+				array( // td
+					'data' => '',
+					'class' => 'price-comment',
+				),              
+			);
+    	}    
+    
+		$cnt_t = $form['bid_count']['#title'];
+		unset($form['bid_count']['#title']);
+
+		$rows[] = array( // tr
+				array( // th
+					'header' => TRUE,
+					'data' => $cnt_t,
+					'class' => 'uc-bartering-cnt-hdr',
+				),
+				array( // td
+					'data' => drupal_render($form['bid_count']),
+					'class' => 'uc-bartering-cnt',
+				),
+                array(),
+		);
+    }
+
+	if (isset($form['message'])) {
+		$rows[] = array( // tr
+			array( // td
+				'data' => drupal_render($form['message']),
+				'class' => 'uc-bartering-message',
+				'colspan' => 3,
+			),
+		);                           
+		$rows[] = array( // tr
+			array( // td
+				'data' => drupal_render($form['custom_message']),
+				'class' => 'uc-bartering-custom-message',
+				'colspan' => 3,
+			),
+		);                 
+    }
+
+	if (isset($form['user_bid'])) {   
+    
+	$qty_t = t('Quantity');    
+	if ($form['#parameters'][2]->type == 'vareparti') {    
+	    if ($form['#parameters'][2]->field_price_per_piece[0]['value']) {
+			$qty_t = t('Item qty');                    
+    	} elseif (!$form['#parameters'][2]->use_stock || (int)$form['#parameters'][2]->stock_level > 1) {
+			$qty_t = t('Qty of lots');                
+	    }
+	}    
+    
+		$qty_t .= '*';
+		unset($form['qty']['#title']); 
+		$qty_d = $form['qty']['#description'];
+		unset($form['qty']['#description']);        
+		$bid_t = $form['user_bid']['#title'];
+		unset($form['user_bid']['#title']);
+
+		if (isset($form['qty'])) {
+			$rows[] = array( // tr
+					array( // th
+						'header' => TRUE,
+						'data' => $qty_t,
+						'class' => 'uc-bartering-qty-hdr',
+					),
+					array( // td
+						'data' => drupal_render($form['qty']),
+						'class' => 'uc-bartering-qty',
+					),
+                    array(
+                    	'data' => $qty_d,
+                        'class' => 'qty-comment',
+                    ),
+			);
+        }            
+    	$rows[] = array( // tr
+				array( // th
+					'header' => TRUE,
+					'data' => $bid_t,
+					'class' => 'uc-bartering-bid-hdr',
+				),
+				array( // td
+					'data' => drupal_render($form['user_bid']),
+					'class' => 'uc-bartering-bid',
+				),  
+				array(
+                	'data' => $form['#parameters'][2]->vat_info,
+                    'class' => 'price-comment',
+                ),                
+		);
+	    if (isset($form['custom_message']) && !isset($form['bid_history'])) {
+			$message_t = $form['custom_message']['#title'];
+            unset($form['custom_message']['#title']);
+
+	    	$rows[] = array( // tr
+					array( // th
+						'header' => TRUE,
+						'data' => $message_t,
+						'class' => 'uc-bartering-message-hdr',
+                        'valign' => 'top',
+					),
+					array( // td
+						'data' => drupal_render($form['custom_message']),
+						'class' => 'uc-bartering-message',
+                        'colspan' => 2,
+					),  
+			);    
+    
+        }
+	}    
+    
+	if (isset($form['place_bid'])) {
+	    $submit_buttons = drupal_render($form['place_bid']);
+        if(isset($form['reject_bid'])) {
+         	$submit_buttons .= drupal_render($form['reject_bid']); 
+        }        
+
+		$rows[] = array( // tr
+			array( // th
+				'header' => TRUE,
+				'data' => '',
+				'class' => 'uc-bartering-user-submit-hdr',
+			),
+			array( // td
+				'data' =>  $submit_buttons . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']),
+				'class' => 'uc-bartering-user-bid-submit',
+			),
+            array(),
+		); 
+
+
+	}
+	elseif (isset($form['cant_bid'])) {
+		$rows[] = array( // tr
+			array( // td
+				'data' => drupal_render($form['cant_bid']),
+				'class' => 'uc-bartering-user-bid-submit',
+				'colspan' => 3,
+			),
+		);
+        if (isset($form['clear_bids'])) {
+			$rows[] = array( // tr
+				array( // th
+					'header' => TRUE,
+					'data' => '',
+					'class' => 'uc-bartering-user-submit-hdr',
+				),
+				array( // td
+					'data' =>  drupal_render($form['clear_bids']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']),
+					'class' => 'uc-bartering-user-bid-submit',
+				),
+                array(),
+			);            
+        }
+	}      
+	
+    global $user; 
+    if (isset($form['bid_session']['#value']['seller']) && $form['bid_session']['#value']['seller'] == $user->uid) {    
+    	$buyer = user_load($form['bid_session']['#value']['buyer']);
+	    $status_msg = array(0 => t('Pending'), 1 => t('Rejected'), 2 => t('Expired'), 3 => t('Accepted'));
+
+		$form['container'] = array(
+        	'#type' => 'fieldset',
+            '#title' => $buyer->name . ' - ('.t('Bid').' '.strtolower($status_msg[$form['bid_session']['#value']['status']]).')',                    
+            '#collapsible' => TRUE, 
+            '#collapsed' => TRUE,
+            '#value' => theme('table', array(), $rows, array('class' => 'uc-auction-bid-table')),
+		);                                                                                       
+        $result = drupal_render($form['container']);
+    }
+    else {
+	    $result = theme('table', array(), $rows, array('class' => 'uc-auction-bid-table'));    
+    }
+    
+    if ($qty_d) { $result .= '<div class="uc-bartering-qty-description">*) ' . t('Your bid will be the total price for this quantity of the sale item.') . '</div>'; }
+	return $result;
+}
+
+
+
+
+/**
+ * Make the user confirm the deal after accepting a pending bid.
+ */
+function uc_bartering_accept_confirm_form(&$form_state, $first_bid) {
+	$bid_session = uc_bartering_get_session($first_bid);
+	$node = node_load($bid_session['nid']);
+    if (!isset($bid_session['pending_bid'])) { return FALSE; }
+
+    $rows = array(
+    	array(
+        	array('data' => t('Item'), 'header' => TRUE),
+            array('data' => $node->title),
+		),
+        array(
+        	array('data' => t('Quantity'), 'header' => TRUE),
+            array('data' => $bid_session['pending_bid']['qty']),
+        ),
+        array(
+        	array('data' => t('Total price'), 'header' => TRUE),
+            array('data' => uc_currency_format($bid_session['pending_bid']['amount']).' '.strtolower($node->vat_info)),           
+		),
+	);                    
+	
+	$form = array(
+		'first_bid' => array(
+			'#type' => 'value',
+			'#value' => $first_bid,
+		),
+        'message' => array(
+        	'#type' => 'item',
+            '#value' => t('Please confirm the deal by clicking the accept buttom below. The order will be completed, and you will receive an e-mail confirmation with information about the other party.'),
+		),
+        'details' => array(
+        	'#type' => 'item',
+            '#value' => theme('table', array(), $rows, array('class' => 'uc-bartering-accept-bid')),
+		),
+		'cancel' => array(
+			'#type' => 'submit',
+            '#submit' => 'uc_bartering_accept_confirm_form_cancel',
+    	   	'#name' => 'cancel',                    
+			'#value' => t('Cancel'),
+		),
+		'confirm' => array(
+			'#type' => 'submit',
+    	   	'#name' => 'confirm',                    
+			'#value' => t('Accept deal'),
+		),
+	);	                            
+    
+    return $form;
+}
+
+
+function uc_bartering_accept_confirm_form_validate($form, &$form_state) {
+	global $user;
+
+	$bid_session = uc_bartering_get_session($form_state['values']['first_bid']);
+	if (!isset($bid_session['pending_bid'])) {
+		form_set_error($form_state['confirm'], t('No pending bid was found. A pending bid could have timed out. A bid is valid for 48 hours.'));    
+	}                                                                                                                                       
+}  
+
+function uc_bartering_accept_confirm_form_cancel($form, &$form_state) {
+	$bid_session = uc_bartering_get_session($form_state['values']['first_bid']);
+	if ($user->uid == $bid_session['seller']) {
+		$form_state['redirect'] = 'node/'.$bid_session['nid'].'/bids';
+	} else {                                                                
+		$form_state['redirect'] = 'node/'.$bid_session['nid'];        
+    }                    
+}
+
+
+function uc_bartering_accept_confirm_form_submit($form, &$form_state) {
+	$bid_session = uc_bartering_get_session($form_state['values']['first_bid']);
+    global $user;
+    if (!isset($bid_session['pending_bid']) || $bid_session['pending_bid']['uid'] === $user->uid || ($user->uid !== $bid_session['buyer'] && $user->uid !== $bid_session['seller'])) {
+		return;    
+    }          
+	uc_cart_add_item($bid_session['nid'], $bid_session['pending_bid']['qty'], NULL, 'bid'.$bid_session['first_bid'], FALSE, FALSE);
+    $order = uc_order_new($bid_session['buyer']);  
+    $order->products = uc_cart_get_contents('bid'.$bid_session['first_bid'], 'rebuild');
+
+/*    if ($node->type == 'consumer' && $node->add_vat) {
+		$amount = $bid_session['pending_bid']['amount'] / 1.25;		    
+	} else {*/
+//        $amount = $bid_session['pending_bid']['amount'];
+//    }
+    
+	// We adjust the price of the product by dividing the combined price with the qty. If a remainder is present, we add it as a line item.
+    foreach ($order->products as $product) {
+	  if ($product->nid == $bid_session['nid']) {	
+			$node = node_load($product->nid);
+			$vat_factor = $node->type == 'consumer' && $node->add_vat ? 1.25 : 1;
+
+//            $product->price = $product->price / 1.25;
+			$product->price = round($bid_session['pending_bid']['amount'] / $product->qty, 2) / $vat_factor;            
+            
+			$sum_diff = round($bid_session['pending_bid']['amount'] / $vat_factor - $product->qty * $product->price, 2);
+		    if ($sum_diff <> 0) {
+				$line_item = array(
+		        	'order_id' => $order->order_id,
+		            'type' => 'generic',
+		            'title' => t('Price adjustment'),    
+		            'amount' => $sum_diff,
+		            'weight' => 2,
+				);             
+		        drupal_write_record('uc_order_line_items', $line_item);
+		    }            
+            
+      }          
+    }                                
+    
+	$buyer = user_load($bid_session['buyer']);
+    profile_load_profile($buyer); 
+    
+    $order->billing_first_name = $buyer->profile_firstname;
+    $order->billing_last_name = $buyer->profile_lastname;
+    $order->billing_company = $buyer->profile_business;     
+
+	if ($address = db_fetch_array(db_query("SELECT a.street, a.additional, a.city, a.postal_code, a.phone, a.province, c.country_id FROM {uc_countries} c LEFT JOIN {addresses_user} a ON (LOWER(c.country_iso_code_2) = a.country) WHERE a.eid = %d ORDER BY a.is_primary DESC", $buyer->uid))) {
+		$order->billing_street1 = $address['street'];
+		$order->billing_street2 = $address['additional'];
+		$order->billing_city = $address['city'];
+		$order->billing_postal_code = $address['postal_code'];                
+		$order->billing_phone = $address['phone'];                                
+		$order->billing_zone = $address['province'];                         
+		$order->billing_country = $address['country_id'];
+
+		if (uc_order_is_shippable($order)) {
+		    $order->delivery_first_name = $buyer->profile_firstname;
+		    $order->delivery_last_name = $buyer->profile_lastname;
+		    $order->delivery_company = $buyer->profile_business;         
+
+			$order->delivery_street1 = $address['street'];
+			$order->delivery_street2 = $address['additional'];
+			$order->delivery_city = $address['city'];
+			$order->delivery_postal_code = $address['postal_code'];                
+			$order->delivery_phone = $address['phone'];                                
+			$order->delivery_zone = $address['province'];                         
+			$order->delivery_country = $address['country_id'];            
+	    }    
+    }
+
+    uc_order_save($order);
+    uc_bartering_accept_bid($bid_session);        
+        
+	$_SESSION['cart_order'] = $order->order_id;
+	$_SESSION['do_complete'] = TRUE;      
+	$form_state['redirect'] = 'cart/checkout/complete';        
+}
+
+
+
+
+
+/**
+ * Save or delete the field settings per the user's request.
+ */
+function uc_bartering_field_settings_submit($form, &$form_state) {
+	if ($form_state['values']['op'] === t('Reset to defaults')) {
+		variable_del('uc_bartering_field_settings');
+	}
+	else {
+		variable_set('uc_bartering_field_settings', array(
+			'uc_bartering_box' => $form_state['values']['fields']['uc_bartering_box'],
+		));
+	}
+}
+
+
+/**
+* Implementation of hook_uc_message()
+*/
+function uc_bartering_uc_message() {
+ 	return array(
+    	'uc_bartering_notify_user_approved_subj' => t('Your bid on "[bartering-product-name]" has been accepted!'),
+    	'uc_bartering_notify_user_approved_msg' => t("Dear [bartering-buyer-name]\n\nWe're pleased to inform you that the seller has accepted your bid of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name]. You and the seller have now agreed to a binding contract for the sale of this sale item. \n\nAn order confirmation has been sent to you by e-mail. Please follow the instructions in the e-mail to complete the purchase.\n\nThanks for bargaining at [store-name]!\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    	'uc_bartering_notify_user_rejected_subj' => t('Your bid on [bartering-product-name] has been rejected!'),
+    	'uc_bartering_notify_user_rejected_msg' => t("Dear [bartering-buyer-name]\n\nThe seller of [bartering-product-name] has rejected your bid of [bartering-pending-amount] for [bartering-pending-qty] piece(s).\n\nReason:\n[bartering-message]\n\nYou can place a new bid on this sale item by logging in to your account on [store-name] and going to the product page.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    	'uc_bartering_notify_user_expired_subj' => t('Your bid on [bartering-product-name] has expired!'),
+    	'uc_bartering_notify_user_expired_msg' => t("Dear [bartering-buyer-name]\n\nYour bid of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name] has expired. A bid will expire, if the seller doesn't respond to it within 48 hours.\n\nYou can place a new bid on this sale item by logging in to your account on [store-name] and going to the product page.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    	'uc_bartering_notify_user_counter_subj' => t('The seller of [bartering-product-name] has made you a new offer!'),
+    	'uc_bartering_notify_user_counter_msg' => t("Dear [bartering-buyer-name]\n\nThe seller of [bartering-product-name] has rejected your bid of [bartering-pending-amount] for [bartering-pending-qty] piece(s) and made a new offer.\n\nReason:\n[bartering-message]\n\nThe seller has offered to sell you [bartering-new-qty] piece(s) of [bartering-product-name] for [bartering-new-amount]. The offer is binding for the seller, should you accept it within 48 hours from now.\n\nLog in to your account on [store-name] and go to the product page to accept the offer, reject it, or to place a counter-bid.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"),        
+    	'uc_bartering_notify_user_new_subj' => t('[bartering-seller-name] has made you a new offer on [bartering-product-name]!'),
+    	'uc_bartering_notify_user_new_msg' => t("Dear [bartering-buyer-name]\n\nThe seller, [bartering-seller-name], has offered to sell you [bartering-new-qty] piece(s) of [bartering-product-name] for [bartering-new-amount]. The offer is binding for the seller, should you accept it within 48 hours from now.\n\nLog in to your account on [store-name] and go to the product page to accept the offer, reject it, or to place a counter-bid.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    	'uc_bartering_notify_seller_approved_subj' => t('Your offer on [bartering-product-name] has been accepted!'),
+    	'uc_bartering_notify_seller_approved_msg' => t("Dear [bartering-seller-name]\n\nWe're pleased to inform you that the buyer has accepted your offer of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name]. You and the buyer have now agreed to a binding contract for the sale of this sale item. \n\nAn order confirmation has been sent to you by e-mail. Please follow the instructions in the e-mail to complete the purchase.\n\nThanks for bargaining at [store-name]!\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    	'uc_bartering_notify_seller_rejected_subj' => t('Your offer on [bartering-product-name] has been rejected by [bartering-buyer-name]!'),
+    	'uc_bartering_notify_seller_rejected_msg' => t("Dear [bartering-seller-name]\n\nThe bidder, [bartering-buyer-name], has rejected your offer of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name].\n\nReason:\n[bartering-message]\n\nYou can make the bidder a new offer on this sale item by logging in to your account on [store-name] and going to the product page.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    	'uc_bartering_notify_seller_expired_subj' => t('Your counter-bid on [bartering-product-name] has expired!'),
+    	'uc_bartering_notify_seller_expired_msg' => t("Dear [bartering-seller-name]\n\nYour offer to sell [bartering-pending-qty] piece(s) of [bartering-product-name] for [bartering-pending-amount] to [bartering-buyer-name] has expired. A bid will expire, if the buyer doesn't respond to it within 48 hours.\n\nYou can make the buyer a new offer on this sale item by logging in to your account on [store-name] and going to the product page.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    	'uc_bartering_notify_seller_counter_subj' => t('[bartering-buyer-name] has made a new bid for [bartering-product-name]!'),
+    	'uc_bartering_notify_seller_counter_msg' => t("Dear [bartering-seller-name]\n\nThe bidder, [bartering-buyer-name], of [bartering-product-name] has rejected your offer of [bartering-pending-amount] for [bartering-pending-qty] piece(s) of [bartering-product-name] and made a new offer.\n\nReason:\n[bartering-message]\n\nThe bidder has offered to pay you [bartering-new-amount] for [bartering-new-qty] piece(s) of [bartering-product-name]. The offer is binding for the bidder, should you accept it within 48 hours from now.\n\nLog in to your account on [store-name] and go to the product page to accept the offer, reject it, or to place a counter-offer.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    	'uc_bartering_notify_seller_new_subj' => t('[bartering-buyer-name] has made a bid for [bartering-product-name]!'),
+    	'uc_bartering_notify_seller_new_msg' => t("Dear [bartering-seller-name]\n\nThe bidder, [bartering-buyer-name], has offered to pay you [bartering-new-amount] for [bartering-new-qty] piece(s) of [bartering-product-name]. The offer is binding for the bidder, should you accept it within 48 hours from now.\n\nLog in to your account on [store-name] and go to the product page to accept the offer, reject it, or to place a counter-offer.\n\nClick on this link to go directly to the bidding page for this sale item:\n[bartering-product-bid-url]\n\nKind regards\n\n[site-name]\n\n[site-url]"),
+    );  
+}
+       
+
+
+
+function uc_bartering_stock_change($nid, $change = 0) {
+	$node = node_load($nid);		
+         if ($node->is_bartering && $node->use_stock) {
+				$new_stock = (int)$node->stock_level + $change;
+
+				$rs = db_query('SELECT bid FROM {uc_bartering_bids} WHERE parent = 0 AND nid = %d', $node->nid);                    
+                while ($record = db_fetch_array($rs)) {
+					$bid_session = uc_bartering_get_session($record['bid']);
+                    if ((int)$bid_session['pending_bid']['qty'] > $new_stock) {
+			        	$bid_session['pending_bid']['message'] = t('Too few items of this product type is available to fulfill your bid quantity, or the product has been sold out.');
+                        $recipient_user = user_load($bid_session['pending_bid']['uid']);
+						$recipient_status = $recipient_user->uid == $node->uid ? 'seller' : 'user';                        
+				        drupal_mail('uc_bartering', 'uc_bartering_notify_'.$recipient_status.'_rejected', $recipient_user->mail, user_preferred_language($recipient_user), array('node' => $node, 'user' => $recipient_user, 'bid_session' => $bid_session));        
+						uc_bartering_reject_bids($bid_session);
+                    }
+                }
+        }        
+}
+       
+
+
+/**
+ * List bids.
+ * @param $user
+ *   The user in question.
+ * @return
+ *   A themed table of bids.
+ */
+function uc_bartering_user_bids($user) {
+        $items = array();
+		if ($rez = db_query('SELECT bid FROM {uc_bartering_bids} WHERE parent = 0 AND uid = %d ORDER BY bid DESC', $user->uid)) {
+			while ($sessions = db_fetch_array($rez)) { 
+            	$items[] = uc_bartering_get_session($sessions['bid']);
+			}
+
+            $result .= "<p>".t("Here you can see your bids on different products. Click on each product to see details and to take action, if the negotiation hasn't ended. Pay attention to bids awaiting your response and make sure you respond to them quickly, so you don't miss out on a good deal.")."</p>";
+            
+            $resultpart = '';
+            foreach ($items as $item) {
+				if ((int)$item['status'] !== 3 && (($item['last_bidder'] != $user->uid && (int)$item['status'] !== 1) || ($item['last_bidder'] == $user->uid && (int)$item['status'] === 1))) {
+					$node = node_load($item['nid']);
+					$resultpart .= l($node->title, 'node/'.$node->nid, array('fragment' => 'bids'));	
+                }
+            }
+			if ($resultpart != '') { $result .= '<h2>'.t('Awaiting action from you').'</h2><div class="bids-awaiting-you">'.$resultpart.'</div>'; }
+            
+            $resultpart = '';
+            foreach ($items as $item) {
+				if ((int)$item['status'] !== 3 && (($item['last_bidder'] != $user->uid && (int)$item['status'] === 1) || ($item['last_bidder'] == $user->uid && (int)$item['status'] !== 1))) {
+					$node = node_load($item['nid']);
+					$resultpart .= l($node->title, 'node/'.$node->nid, array('fragment' => 'bids'));	
+                }
+            }
+			if ($resultpart != '') { $result .= '<h2>'.t('Awaiting action from the other party').'</h2><div class="bids-awaiting-other">'.$resultpart.'</div>'; }            
+
+		} else {
+			$result = t('You have no active price negotiations. When you start a negotiation, you can see it on this page.');        
+        }
+		return $result;
+}
+
+
+
+/**
+ * Get bartering session data as an array
+ * @param $bid
+ *   bid for the first bid in the session (bid with parent 0)
+ */
+ function uc_bartering_get_session($bid) {
+	$result = array();
+	if ($rez = db_fetch_array(db_query('SELECT ubb.nid, ubb.uid AS buyer, n.uid AS seller FROM {uc_bartering_bids} ubb LEFT JOIN {node} n ON (ubb.nid = n.nid) WHERE ubb.parent = 0 AND ubb.bid = %d', $bid))) {
+		$result['first_bid'] = $bid;
+		$result['nid'] = $rez['nid'];
+		$result['buyer'] = $rez['buyer'];
+        $result['seller'] = $rez['seller'];
+        
+        if ($rez = db_fetch_array(db_query('SELECT bid, status, uid FROM {uc_bartering_bids} WHERE (parent = %d) OR (parent = 0 AND bid = %d) ORDER BY bid DESC', $bid, $bid))) {        
+			$result['status'] = $rez['status'];
+			$result['last_bidder'] = $rez['uid'];            
+        }         
+
+        if ($rez = db_fetch_array(db_query('SELECT bid, uid, time, qty, amount, status, parent, message FROM {uc_bartering_bids} WHERE (status = 0) AND ((parent = %d) OR (parent = 0 AND bid = %d))', $bid, $bid))) {
+			$result['pending_bid'] = $rez;
+			if ($rez['time'] < strtotime("-48 hours", time())) {
+				db_query('UPDATE {uc_bartering_bids} SET status = 2 WHERE bid = %d', $rez['bid']);
+				$node = node_load($rez['nid']);
+				$recipient_user = user_load($rez['uid']);
+				$recipient_status = $rez['uid'] == $node->uid ? 'seller' : 'user';                                
+                
+                $result['status'] = 2;
+
+	        	drupal_mail('uc_bartering', 'uc_bartering_notify_'.$recipient_status.'_expired', $recipient_user->mail, user_preferred_language($recipient_user), array('node' => $node, 'user' => $recipient_user, 'bid_session' => $result));        
+                unset($result['pending_bid']);
+            }
+        }		
+	}
+    else {
+    	$result = FALSE;
+    } 
+    return $result;
+ }
+ 
+ /**
+ * Reject all pending bids in a bidding session.
+ * This is used to reject the pending bid in a session.
+ * @param $bid_session
+ *   bid_session in question
+ */
+ function uc_bartering_reject_bids($bid_session) {
+ 		if ($bid_session['pending_bid']['message'] && $bid_session['rejector']) {
+			$bid_session['pending_bid']['message'] = '<br /><b>'.$bid_session['rejector'].': </b>'.$bid_session['pending_bid']['message'];			        
+        }
+		db_query("UPDATE {uc_bartering_bids} SET status = 1, message = '%s' WHERE bid = %d", $bid_session['pending_bid']['message'], $bid_session['pending_bid']['bid']);     	            
+ }
+ 
+ 
+  /**
+ * Accept pending bid in a bidding session.
+ * This is used to accept the pending bid in a session.
+ * @param $bid_session
+ *   bid_session in question
+ */
+ function uc_bartering_accept_bid($bid_session) {
+		db_query("UPDATE {uc_bartering_bids} SET status = 3 WHERE bid = %d", $bid_session['pending_bid']['bid']);     	            
+ }
+ 
+ 
+  /**
+ * Deletes all pending bids in a bidding session.
+ * This can be done by the buyer, if the product have been purchased, and it can be done by administrator with the correct permissions.
+ * @param $bid
+ *   bid for the first bid in the session (bid with parent 0)
+ */
+ function uc_bartering_delete_bids($bid) {
+	db_query('DELETE FROM {uc_bartering_bids} WHERE (parent = %d) OR (parent = 0 AND bid = %d)', $bid, $bid);     	        
+ }
+
+
+/**
+ * Like the function below, but it doesn't create a table, only an array. It has much improved speed with only one db call vs too many in the other function.
+ */
+function uc_bartering_get_node_bids($node) {
+	global $user;
+	if (!is_object($node)) $node = node_load($node);
+	
+	$result = array();
+
+	if ($user->uid == $node->uid) {
+		if ($rez = db_query('SELECT * FROM {uc_bartering_bids} WHERE nid = %d ORDER BY bid ASC', $node->nid)) {	
+			$result['sessions'] = array();
+			$result['max_bid'] = 0;
+			$result['awaiting_seller'] = 0;
+			$result['awaiting_buyer'] = 0;
+				
+			while ($row = db_fetch_array($rez)) {
+				$id = $row['parent'] == 0 ? $row['bid'] : $row['parent'];
+				if (!isset($result['sessions'][$id])) {
+					$result['sessions'][$id] = array();
+					$result['sessions'][$id]['bids'] = array();
+				}					
+				
+				$result['sessions'][$id]['bids'][$row['bid']] = $row;
+				
+				if (!isset($result['sessions'][$id]['buyer'])) {
+					$result['sessions'][$id]['buyer'] = $row['uid'];
+				}					
+				$result['sessions'][$id]['status'] = $row['status'];
+				$result['sessions'][$id]['last_bidder'] = $row['uid'];
+				
+				if ($row['amount'] > $result['max_bid'] && $row['uid'] <> $node->uid) $result['max_bid'] = $row['amount']; 				
+        	}
+			
+			foreach ($result['sessions'] as $session) {
+				if ((int)$session['status'] === 0) {
+					if ($session['last_bidder'] == $node->uid) {
+						$result['awaiting_buyer'] += 1;
+					} else {
+						$result['awaiting_seller'] += 1;					
+					}
+				}
+			}
+		}
+	}
+	
+	return $result;
+}
+
+  
+/**
+ * List bids.
+ * @param $node
+ *   The product to show bids for.
+ * @return
+ *   A themed table of bids.
+ */
+function uc_bartering_node_bids($node) {
+	global $user;       
+    if ($user->uid == $node->uid) {
+    	$taxonomy_term = array_shift($node->taxonomy);
+        $path = $node->type == 'vareparti' ? 'user/'.$node->uid.'/varepartier' : 'user/'.$node->uid.'/lagersalg';
+    	require_once(drupal_get_path('module', 'uc_catalog').'/uc_catalog.pages.inc');
+		$breadcrumb = uc_catalog_set_breadcrumb_mod($taxonomy_term->tid, $types = array($node->type), $path, TRUE);
+        $breadcrumb[] = l($node->title, 'node/'.$node->nid);
+    	drupal_set_breadcrumb($breadcrumb);
+        drupal_set_title(t('Bids on !title', array('!title' => $node->title)));
+    
+    
+        $items = array();
+		if ($rez = db_query('SELECT bid FROM {uc_bartering_bids} WHERE parent = 0 AND nid = %d ORDER BY bid DESC', $node->nid)) {
+			while ($sessions = db_fetch_array($rez)) {
+            	$items[] = uc_bartering_get_session($sessions['bid']);
+			}
+            
+            $result .= "<p>".t("Here you can see bids on this sale item, made by different users. Click on each username to see details and to take action in the negotiation. Pay attention to bids awaiting your response and make sure you respond to them quickly, so you don't keep interested customers waiting.")."</p>";
+            
+            $resultpart = '';
+            foreach ($items as $item) {
+				if ((int)$item['status'] !== 3 && (($item['last_bidder'] == $item['buyer'] && (int)$item['status'] !== 1) || ($item['last_bidder'] == $item['seller'] && (int)$item['status'] === 1))) {
+					$resultpart .= drupal_get_form('uc_bartering_bid_form_'.$item['first_bid'], $node, $item['first_bid'], '');	                
+                }
+            }
+			if ($resultpart != '') { $result .= '<h2>'.t('Awaiting action from you').'</h2><div class="bids-awaiting-you">'.$resultpart.'</div>'; }
+            
+            $resultpart = '';
+            foreach ($items as $item) {
+				if ((int)$item['status'] !== 3 && (($item['last_bidder'] == $item['buyer'] && (int)$item['status'] === 1) || ($item['last_bidder'] == $item['seller'] && (int)$item['status'] !== 1))) {
+					$resultpart .= drupal_get_form('uc_bartering_bid_form_'.$item['first_bid'], $node, $item['first_bid'], '');	                
+                }
+            }
+			if ($resultpart != '') { $result .= '<h2>'.t('Awaiting action from the buyer').'</h2><div class="bids-awaiting-other">'.$resultpart.'</div>'; }            
+            
+
+		} else {
+			$result = t('No bids have been made for this sale item. When someone makes a bid, you can see and respond to it on this page.');        
+        }
+	} else {
+		$result = drupal_get_form('uc_bartering_bid_form', $node);
+    }        
+	return $result;
+} 
+
+/**
+ * List bids in a specific bartering session.
+ * @param $bid
+ *   The first bid in the session.
+ * @param $mode
+ *   Integer. Showing table based on: 0 = node, 1 = user.
+ * @return
+ *   A themed table of bids.
+ */
+function uc_bartering_session_bids($bid, $mode) {
+	$result = '';    
+    $title = '';
+	$rows = array();                  
+    $status_msg = array(0 => t('Pending'), 1 => t('Rejected'), 2 => t('Expired'), 3 => t('Accepted'));
+    $last_status = 0;
+	$rez = db_query('SELECT bid, nid, uid, time, qty, amount, status, message FROM {uc_bartering_bids} WHERE (parent = %d) OR (parent = 0 AND bid = %d) ORDER BY bid ASC', $bid, $bid);
+	while ($bids = db_fetch_array($rez)) {
+		$bid_user = user_load($bids['uid']);
+		$row = array(
+        	'data' => array(
+	        	array(
+		        	'data' => theme('username', $bid_user),
+        	        'class' => 'ucb-username',
+				),
+	            array(                
+		            'data' => format_date($bids['time'], 'custom', 'd.m.Y k\l. H:i'), 
+        	        'class' => 'ucb-time',                
+				),
+	            array(                
+    	        	'data' => $bids['qty'],   
+        	        'class' => 'ucb-qty',                
+				),
+	            array(                
+					'data' => uc_currency_format($bids['amount']),
+        	        'class' => 'ucb-amount',                
+				),
+	            array(                
+					'data' => $status_msg[$bids['status']], 
+        	        'class' => 'ucb-status',                
+				),
+	            array(                
+    	    	    'data' => $bids['message'],           
+        	        'class' => 'ucb-message',                
+				),
+            ),
+            'class' => 'status-'.$bids['status'],                
+		);
+        $last_status = $bids['status'];
+        $rows[] = $row;                         
+	}
+	$header = array(t('User'), t('Time'), t('Quantity'), t('Bid'), t('Bid status'), t('Message'));
+
+	$result = theme('table', $header, $rows, array('class' => 'uc-bartering-bid-history'));
+                  
+    return $result;    
+}
+  
+  
+/**
+ * Show the administration form. drupal_get_form() callback.
+ */
+function uc_bartering_settings_form() {
+
+	return system_settings_form(array(
+		'uc_bartering_default_fset' => array(
+			'#type' => 'fieldset', 
+			'#title' => t('Defaults'),
+			'#weight' => -30,
+			'uc_bartering_new_default' => array(
+				'#type' => 'checkbox',
+				'#title' => t('New products are up for bargaining by default'),
+				'#description' => t('If checked, the new product form will have the <em>Allow customers to place a bid for this product</em> check box checked by default.'),
+				'#default_value' => variable_get('uc_bartering_new_default', FALSE),
+				'#weight' => 0,
+			),
+			'uc_bartering_is_multiple' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Allow quantity selection'),
+				'#description' => t('If checked, sellers can let buyers choose how many pieces of the product they are bidding on.'),
+				'#default_value' => variable_get('uc_bartering_is_multiple', FALSE),
+				'#weight' => 0,
+			),            
+		),
+        
+        /* Messages for the buyer */
+		'uc_bartering_notify_user_approved_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the buyer that his/her bid has been accepted by the seller'),
+			'#weight' => -20,
+			'uc_bartering_notify_user_approved' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the buyer when his/her bid has been accepted'),
+				'#description' => t('Regardless of this setting, the system will process the order and send a receipt to the buyer, just as if the product had been bought normally in the store'),
+				'#default_value' => variable_get('uc_bartering_notify_user_approved', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_user_approved_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_user_approved_subj', uc_get_message('uc_bartering_notify_user_approved_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_user_approved_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message emailed to the auction winner. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_user_approved_msg', uc_get_message('uc_bartering_notify_user_approved_msg')),
+				'#weight' => 10,
+			),
+		),
+		'uc_bartering_notify_user_rejected_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the customer that his/her bid has been rejected'),
+			'#weight' => -15,
+			'uc_bartering_notify_user_rejected' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the customer when his/her bid has been rejected (no counter-bid)'),
+				'#default_value' => variable_get('uc_bartering_notify_user_rejected', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_user_rejected_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_user_rejected_subj', uc_get_message('uc_bartering_notify_user_rejected_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_user_rejected_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message e-mailed to the buyer. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_user_rejected_msg', uc_get_message('uc_bartering_notify_user_rejected_msg')),
+				'#weight' => 10,
+			),
+		),
+		'uc_bartering_notify_user_expired_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the customer that his/her bid has expired'),
+			'#weight' => -15,
+			'uc_bartering_notify_user_expired' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the customer when his/her bid has expired'),
+				'#default_value' => variable_get('uc_bartering_notify_user_expired', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_user_expired_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_user_expired_subj', uc_get_message('uc_bartering_notify_user_expired_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_user_expired_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message e-mailed to the buyer. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_user_expired_msg', uc_get_message('uc_bartering_notify_user_expired_msg')),
+				'#weight' => 10,
+			),
+		),
+		'uc_bartering_notify_user_counter_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the customer that his/her bid has been rejected, and a counter-bid has been made'),
+			'#weight' => -15,
+			'uc_bartering_notify_user_counter' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the customer when his/her bid has been rejected, and a counter-bid has been made'),
+				'#default_value' => variable_get('uc_bartering_notify_user_counter', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_user_counter_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_user_counter_subj', uc_get_message('uc_bartering_notify_user_counter_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_user_counter_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message emailed to the buyer. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_user_counter_msg', uc_get_message('uc_bartering_notify_user_counter_msg')),
+				'#weight' => 10,
+			),
+		),                
+        
+        /* Messages for the seller */
+		'uc_bartering_notify_seller_new_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the seller that a new bid has been made on his product.'),
+			'#weight' => -15,
+			'uc_bartering_notify_seller_new' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the seller when a new bid has been made on one of his/her products'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_new', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_seller_counter_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_new_subj', uc_get_message('uc_bartering_notify_seller_new_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_seller_new_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message e-mailed to the seller. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_seller_new_msg', uc_get_message('uc_bartering_notify_seller_new_msg')),
+				'#weight' => 10,
+			),
+		),              
+		'uc_bartering_notify_seller_approved_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the seller that his/her counter-bid has been accepted by the buyer'),
+			'#weight' => -20,
+			'uc_bartering_notify_seller_approved' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the seller when his/her counter-bid has been accepted'),
+				'#description' => t('Regardless of this setting, the system will process the order and send a receipt to the seller, just as if the product had been bought normally in the store'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_approved', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_seller_approved_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_approved_subj', uc_get_message('uc_bartering_notify_seller_approved_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_seller_approved_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message e-mailed to the seller, when his/her counter-bid has been accepted by the buyer. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_seller_approved_msg', uc_get_message('uc_bartering_notify_seller_approved_msg')),
+				'#weight' => 10,
+			),
+		),
+		'uc_bartering_notify_seller_rejected_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the seller that his/her counter-bid has been rejected'),
+			'#weight' => -15,
+			'uc_bartering_notify_seller_rejected' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the seller when his/her counter-bid has been rejected (no new counter-bid)'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_rejected', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_seller_rejected_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_rejected_subj', uc_get_message('uc_bartering_notify_seller_rejected_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_seller_rejected_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message e-mailed to the seller. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_seller_rejected_msg', uc_get_message('uc_bartering_notify_seller_rejected_msg')),
+				'#weight' => 10,
+			),
+		),
+		'uc_bartering_notify_seller_expired_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the seller that his/her counter-bid has expired'),
+			'#weight' => -15,
+			'uc_bartering_notify_seller_expired' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the seller when his/her counter-bid has expired'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_expired', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_seller_expired_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_expired_subj', uc_get_message('uc_bartering_notify_seller_expired_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_seller_expired_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message e-mailed to the seller. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_seller_expired_msg', uc_get_message('uc_bartering_notify_seller_expired_msg')),
+				'#weight' => 10,
+			),
+		),
+		'uc_bartering_notify_seller_counter_fset' => array(
+			'#type' => 'fieldset',
+			'#title' => t('Notification for the seller that his/her counter-bid has been rejected, and a new counter-bid has been made'),
+			'#weight' => -15,
+			'uc_bartering_notify_seller_counter' => array(
+				'#type' => 'checkbox',
+				'#title' => t('Notify the seller when his/her counter-bid has been rejected, and a new counter-bid has been made'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_counter', TRUE),
+				'#weight' => 0,
+			),
+			'uc_bartering_notify_seller_counter_subj' => array(
+				'#type' => 'textfield',
+				'#title' => t('Notification message subject'),
+				'#default_value' => variable_get('uc_bartering_notify_seller_counter_subj', uc_get_message('uc_bartering_notify_seller_counter_subj')),
+				'#weight' => 5,
+			),
+			'uc_bartering_notify_seller_counter_msg' => array(
+				'#type' => 'textarea',
+				'#title' => t('Notification message body'),
+				'#description' => t('The message e-mailed to the seller. <a href="!uses">Uses bartering, product and global tokens</a>.', array('!uses' => url('admin/store/help/tokens'))),
+				'#default_value' => variable_get('uc_bartering_notify_seller_counter_msg', uc_get_message('uc_bartering_notify_seller_counter_msg')),
+				'#weight' => 10,
+			),
+		),              
+	));
+
+}
+	
+
+/**
+ * Validate the settings form.
+ */
+function uc_bartering_settings_form_validate($form, &$form_state) {
+    if (is_nan($form_state['values']['uc_bartering_bid_increment_pct']) || $form_state['values']['uc_bartering_bid_increment_pct'] < 0) { $form_state['values']['uc_bartering_bid_increment_pct'] = 0; }
+}
+
+
+
+/**
+ * Check if a node's type is an Ubercart product type.
+ *
+ * hook_nodeapi() is called a lot, and each time it is, we want to check to see
+ * if the node in question is of a UC product type. Here's a helper function to
+ * do that which caches the product types since module_invoke_all() is
+ * expensive (I'm guessing).
+ *
+ * @param $node
+ *   The node.
+ * @return
+ *   Whether the node's type is an UC product type.
+ */
+
+function _uc_bartering_is_uc_type($node) {
+	static $uc_types = NULL;
+	static $is_type = array();
+	// We're going to cache the product types since module_invoke_all() is
+	// probably pretty expensive. uc_bartering_nodeapi() is going to be called
+	// several times per node and each one of those calls is going to call
+	// this function.
+	if ($uc_types === NULL) {
+		$uc_types = module_invoke_all('product_types');
+	}
+	// We're also going to cache which nodes are of a product type. This is good
+	// if the page is going to show a lot of nodes.
+	if (!isset($is_type[$node->nid])) {
+		$is_type[$node->nid] = in_array($node->type, $uc_types);
+	}
+	return $is_type[$node->nid];
+}
+
+
+/* Permission callbacks ***************************************************** */
+
+/**
+ * See if the user can view the bids for a node.
+ *
+ * As not all nodes will even have bid history, this also checks to see if the
+ * node is in fact a product which is up for auction. 
+ *
+ * Bartering will be disabled, when an auction is running for the product.
+ *
+ * @param $node
+ *   The node.
+ * @return
+ *   Whether the current user can see the node's bid history or not.
+ */
+function uc_bartering_node_bids_perm($node) {
+	global $user;
+	return (!isset($node->uc_auction) && isset($node->uc_bartering) && $user->uid == $node->uid);
+}      
+
+function uc_bartering_accept_confirm_perm($first_bid = 0) {
+	global $user;
+	$result = FALSE;
+    
+	$bid_session = uc_bartering_get_session($first_bid);
+	if ($bid_session) {
+    	if ($user->uid != $bid_session['pending_bid']['uid'] && ($user->uid == $bid_session['buyer'] || $user->uid == $bid_session['seller'])) {
+			$result = TRUE;
+    	}
+    }
+    return $result;        
+}
+
+/**
+ * See if the user can view a particular user's bidding activity.
+ *
+ * @param $see_user
+ *   The user whose activity will be seen.
+ * @return
+ *   Whether the current user can see the activity or not.
+ */
+function uc_bartering_user_bids_perm($see_user) {
+	global $user;
+	return $user->uid == $see_user->uid || user_access('administer users');
+}
+

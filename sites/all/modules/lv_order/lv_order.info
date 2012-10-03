@@ -1,0 +1,8 @@
+; $Id$
+name = LV Order
+description = Lagervarer modifications for Ubercart orders
+core = 6.x
+dependencies[] = uc_order
+package = "Ubercart - extra"
+
+

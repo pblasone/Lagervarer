@@ -1,0 +1,1854 @@
+<?php
+// $Id$
+
+/**
+* @file
+* Module for importing products to Lagervarer.dk
+*/
+
+require_once('parsecsv.lib.php');
+		
+
+/**
+ * Implementation of hook_perm().
+ */
+function lv_import_perm() {
+	return array('import products');
+}   
+
+
+
+/** 
+ * Implementation of hook_menu().
+ */
+function lv_import_menu() {
+	return array(
+		'user/%user/import/new' => array(
+			'title' => 'New import agent',
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array('lv_import_agent_form', 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),
+		'user/%user/import/%/edit' => array(
+			'title' => 'Edit import agent',
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array('lv_import_agent_form', 1, 3),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),		
+		'user/%user/import/%/delete' => array(
+			'title' => 'Delete import agent',
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array('lv_import_agent_delete_form', 1, 3),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),			
+		'user/%user/import/%' => array(
+			'title' => 'Import Agent Overview',
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array('lv_import_agent_dashboard_form', 1, 3),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),	
+		'user/%user/import' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'lv_import_overview_page',
+			'page arguments' => array(1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),			
+	
+
+	);        	 
+} 
+
+ 	
+function lv_import_overview_page($account) {
+
+	drupal_set_title(t('Import Agents'));
+	//drupal_set_breadcrumb(array(l(t('Home'), ''), l(t('Account'), 'user/'.$account->uid));
+
+	$rows = array();
+	$rs = db_query("SELECT import_id, settings, last_imported, last_result, status FROM {lv_import} WHERE uid = %d", $account->uid);
+	while ($row = db_fetch_array($rs)) {
+		
+		$settings = unserialize($row['settings']);
+//echo '<pre>'; print_r($settings); echo '</pre><hr>'; 		
+
+		$last_result = unserialize($row['last_result']);
+		
+//echo '<pre>'; print_r($last_result); echo '</pre><hr>'; 		
+	
+		if (isset($last_result['tally'])) {
+			$last_link = __lv_import_summary_table($last_result);
+		}
+		else {
+			$last_link = '-';
+		}
+	
+		$rows[] = array(
+			'data' => array(
+				array(
+					'data' => $row['import_id']
+				),
+				array(
+					'data' => l($settings['name'], 'user/' . $account->uid . '/import/' . $row['import_id'])
+				),				
+				array(
+					'data' => isset($last_result['lines']) ? count($last_result['lines']) : '-',
+				),				
+				array(
+					'data' => isset($last_result['tally']) ? format_date($row['last_imported'], 'custom', 'm-d-Y H:i:s') : '-',
+				),
+				array(
+					'data' => $last_link,
+				),				
+				array(
+					'data' => $row['status'] ? t('Active') : t('Inactive')
+				),				
+
+			),
+		);
+	}
+	
+	if (count($rows)) {
+		$header = array(t('Id'), t('Name'), t('Item count'), t('Last import'), t('Last import result'), t('Status'));	
+		$result = theme_table($header, $rows, array('class' => 'products-edit-table'));
+	
+	}
+	else {
+		$result = '<p>' . t("You have no import agents. Create a new import agent to start having us import you items automatically.") . '</p>';
+	}
+	
+	$result .= '<div id="welcome-button" style="margin-top: 20px;">
+	    	      <a class="linkbutton" href="'.url('user/' . $account->uid . '/import/new').'">' . t('New Import Agent') . '</a>
+		    </div>';
+
+	return $result;
+
+
+}
+
+function lv_import_agent_dashboard_form(&$form_state, $account, $import_id = 0) {
+
+	//drupal_set_title(t('Import Agents'));
+	drupal_set_breadcrumb(array(l(t('Home'), ''), l(t('Account'), 'user/'.$account->uid), l(t('Import Agents'), 'user/'.$account->uid.'/import')));
+
+	if ($agent = db_fetch_array(db_query("SELECT settings, last_imported, frequency, last_result, status FROM {lv_import} WHERE uid = %d AND import_id = %d", $account->uid, $import_id))) {
+		
+		$frequencies = array(
+			0 => t('I will run the import myself when needed.'),
+			86400 => t('Auto-run every day.'),
+			259200 => t('Auto-run every 3 days.'),
+			604800 => t('Auto-run every week.'),
+			1209600 => t('Auto-run every two weeks.'),
+			2592000 => t('Auto-run every month'),
+		);
+		
+		$settings = unserialize($agent['settings']);
+		
+		$form = array(
+			'account_id' => array(
+				'#type' => 'value',
+				'#value' => $account->uid,			
+			),
+			'import_id' => array(
+				'#type' => 'value',
+				'#value' => $import_id,
+			),
+			'agent_main' => array(
+				'#type' => 'fieldset',
+				'#title' => t('General Settings'),
+				'#collapsible' => false,
+				'name' => array(
+					'#type' => 'textfield',
+					'#title' => t('Import Agent Name'),
+					'#description' => t('Pick any name for this import agent. If you need to create more than one import agent, the names will help you distinguish between them.'),
+					'#default_value' => $settings['name'],
+					'#required' => true,
+					'#weight' => -4,				
+				),						
+				'frequency' => array(	
+					'#type' => 'select',
+					'#title' => t('How should this import agent work?'),
+					'#description' => t('If you choose to run it yourself, you can upload the import file from your hard drive. If you choose to have it run automatically, the file must be available on a web server.'),
+					'#options' => $frequencies,
+					'#default_value' => $agent['frequency'],
+					'#required' => true,
+					'#weight' => -3,
+				),	
+				'auto_delete' => array(                                    
+	            	'#type' => 'checkbox',
+	    	        '#title' => t('Delete products when they don\'t show up in the imported file anymore.'),
+	                '#default_value' => $settings['auto_delete'],
+				),					
+				'mail_report' => array(                                    
+	            	'#type' => 'checkbox',
+	    	        '#title' => t('E-mail me a report after each automatic import.'),
+	                '#default_value' => $settings['mail_report'],
+				),											
+				'is_active' => array(
+	            	'#type' => 'checkbox',
+	    	        '#title' => t('Import Agent is active'),
+	                '#default_value' => $agent['status'],				
+				),
+				'save_agent' => array(
+      				'#type' => 'submit',
+      				'#value' => t('Save Changes'),
+				),
+				'delete_agent' => array(
+      				'#type' => 'submit',
+      				'#value' => t('Delete Import Agent'),
+				),				
+			
+			),
+		
+		);
+		
+		if ($agent['frequency'] == 0) {
+			
+			$form['#attributes'] = array('enctype' => "multipart/form-data");
+			$form['run_agent'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Run Import Agent'),
+				'#description' => t('If you haven\'t chosen to run the import agent automatically, you can run the import agent yourself right here.'),
+				'#collapsible' => false,
+				'import_file' => array(
+					'#type' => 'file',
+					'#title' => t('Import File'),
+					'#description' => t('Please choose the file to upload.'),
+				),						
+				'run_import_now' => array(
+      				'#type' => 'submit',
+      				'#value' => t('Import Now'),
+				),			
+			
+			);
+			
+		}
+		else {
+//echo '<pre>'; print_r($settings); echo '</pre>';
+
+			$form['#attributes'] = array('enctype' => "multipart/form-data");
+			$form['run_agent'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Next Run'),
+				'#description' => t('Details about the next scheduled import.'),
+				'#collapsible' => false,
+				'import_file_next' => array(
+					'#value' => '<p><strong>' . t('Next scheduled import.') . '</strong><br />' . format_date($agent['last_imported'] + $agent['frequency'], 'custom', 'm-d-Y H:i:s') . '</p>',
+				),					
+				'import_file_info' => array(
+					'#value' => '<p><strong>' . t('The import agent will import the catalogue found at this location.') . '</strong><br /><a target="_blank" href="' . $settings['import_file'] . '">' . $settings['import_file'] . '</a></p>',
+				),						
+
+			
+			);			
+		
+		}
+			
+		// Show info about last run
+		$result_array = unserialize($agent['last_result']);
+		if (isset($result_array['lines'])) {
+
+			$form['show_result'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Last Import Summary'),
+				'#description' => t("Here you'll see results of the last import and any warnings or errors that occured. You can import your file despite errors, but the lines that caused the errors will not be included. Lines with warnings will be imported."),
+				'#collapsible' => false,
+				'result_table' => array(
+					'#value' => __lv_import_summary_table($result_array),
+				),					
+				'result_data' => array(
+					'#value' => __lv_import_result_table($result_array),
+				),
+			);
+			
+			/*
+			if (isset($result_array['summary']['warning'])) {
+				$form['show_warnings'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Warning details'),
+					'#description' => t("Showing up to 100 lines that returned warnings."),
+					'#collapsible' => true,
+					'#collapsed' => true,
+					'result_warning_data' => array(
+						'#value' => __lv_import_result_lines($result_array, $lines, $fa, 'warning', 100),
+					),
+				);
+			}
+			
+			if (isset($result_array['summary']['error'])) {
+				$form['show_errors'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Error details'),
+					'#description' => t("Showing up to 100 lines that returned errors."),
+					'#collapsible' => true,
+					'#collapsed' => true,
+					'result_error_data' => array(
+						'#value' => __lv_import_result_lines($result_array, $lines, $fa, 'error', 100),
+					),
+				);
+			}
+			*/
+				
+		}					
+		
+		return $form;
+	}
+
+}
+
+function lv_import_agent_dashboard_form_submit($form, &$form_state) {
+
+  // If the clicked button is the one for saving settings, we just do this
+  if ($form_state['clicked_button']['#id'] == 'edit-save-agent') {
+
+	if ($agent = db_fetch_array(db_query("SELECT settings, last_imported, frequency, last_result, status FROM {lv_import} WHERE uid = %d AND import_id = %d", $form_state['values']['account_id'], $form_state['values']['import_id']))) {
+
+		$settings = unserialize($agent['settings']);
+		$settings['name'] = $form_state['values']['name'];
+		$settings['auto_delete'] = $form_state['values']['auto_delete'];
+		$settings['mail_report'] = $form_state['values']['mail_report'];
+
+		$record = array(
+			'uid' => (int)$form_state['values']['account_id'],
+			'import_id' => (int)$form_state['values']['import_id'],
+			'settings' => serialize($settings),
+			'frequency' => (int)$form_state['values']['frequency'],
+			'status' => (int)$form_state['values']['is_active'],
+		);
+	
+		$update = array('import_id', 'uid');
+		drupal_write_record('lv_import', $record, $update);           
+		
+		drupal_set_message(t('Changes Saved.')); 
+ 	
+  	}
+  }
+  // If the clicked button says run the import agent, we run the same function that the cron function for running the import scheduled will trigger
+  elseif ($form_state['clicked_button']['#id'] == 'edit-run-import-now') {
+    	
+		// Get the chosen file, upload it so we have the temp path on our server
+		$file = file_save_upload('import_file', $validators);
+		_lv_run_import($form_state['values']['import_id'], $file->filepath);		
+
+  }
+  elseif ($form_state['clicked_button']['#id'] == 'edit-delete-agent') {
+  	$form_state['redirect'] = 'user/' . $form_state['values']['account_id'] . '/import/' . $form_state['values']['import_id'] . '/delete';		
+  }
+	
+
+
+
+}
+
+
+function lv_import_agent_form(&$form_state, $account, $import_id = 0) {
+
+  $def = array();
+  
+	if ($import_id > 0 && $result = db_result(db_query('SELECT settings FROM {lv_import} WHERE import_id = %d AND uid = %d', $import_id, $account->uid))) {
+		$def = unserialize($result);
+	}
+	if (!isset($form_state['storage']['all_values'])) {
+		$form_state['storage']['all_values'] = $def;
+	}
+
+	  // $form_state['storage']['step'] keeps track of what page we're on.
+	  if (!isset($form_state['storage']['step'])) {
+	    $form_state['storage']['step'] = 1;
+	  }
+	  
+  //Don't lose our old data when returning to a page with data already typed in.
+  if (isset($form_state['storage']['all_values'])) {
+    $def = $form_state['storage']['all_values'] + $def;	
+  }	  
+		$form = array(
+	        '#validate' => array('lv_import_agent_form_validate'),
+		);
+
+	$frequencies = array(
+		0 => t('I will run the import myself when needed.'),
+		86400 => t('Auto-run every day.'),
+		259200 => t('Auto-run every 3 days.'),
+		604800 => t('Auto-run every week.'),
+		1209600 => t('Auto-run every two weeks.'),
+		2592000 => t('Auto-run every month'),
+	);
+
+	switch ($form_state['storage']['step']) {
+	    case 1:
+			$form['main_settings'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Import agent settings'),
+				'#collapsible' => false,
+				'account_id' => array(
+					'#type' => 'value',
+					'#value' => $account->uid,			
+				),
+				'import_id' => array(
+					'#type' => 'value',
+					'#value' => $import_id,
+				),					
+				'name' => array(
+					'#type' => 'textfield',
+					'#title' => t('Import Agent Name'),
+					'#description' => t('Pick any name for this import agent. If you need to create more than one import agent, the names will help you distinguish between them.'),
+					'#default_value' => isset($def['name']) ? $def['name'] : '',
+					'#required' => true,
+					'#weight' => -4,				
+				),	
+				'frequency' => array(	
+					'#type' => 'select',
+					'#title' => t('How should this import agent work?'),
+					'#description' => t('If you choose to run it yourself, you can upload the import file from your hard drive. If you choose to have it run automatically, the file must be available on a web server.'),
+					'#options' => $frequencies,
+					'#default_value' => isset($def['frequency']) ? $def['frequency'] : 0,
+					'#required' => true,
+					'#weight' => -3,
+				),
+				'auto_delete' => array(                                    
+	            	'#type' => 'checkbox',
+	    	        '#title' => t('Delete products when they don\'t show up in the imported file anymore.'),
+	                '#default_value' => isset($def['auto_delete']) ? $def['auto_delete'] : 0,
+				),					
+				'fileformat' => array(
+					'#type' => 'select',
+					'#title' => t('Select the format of the import file'),
+					'#options' => array(
+						'csv' => t('Comma/Tab-separated (.CSV/.TXT file)'),
+						'xls' => t('MS Excel (.XLS/.XLSX file)'),
+						'xml' => t('XML (.XML file)'),
+					),
+					'#default_value' => isset($def['fileformat']) ? $def['fileformat'] : 'csv',
+					'#required' => true,
+					'#weight' => -3,					
+				),
+				'mail_report' => array(                                    
+	            	'#type' => 'checkbox',
+	    	        '#title' => t('E-mail me a report after each automatic import.'),
+	                '#default_value' => isset($def['mail_report']) ? true : false,
+				),	
+			);
+		
+			break;
+		case 2:
+			
+			$form['file_options'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('File Options'),
+				'#collapsible' => false,	
+			);	
+			
+			// If automatic import is chosen, allow for an URL to be entered. Otherwise let user upload a file.
+			if ($form_state['values']['frequency']) {
+				$form['file_options']['import_file'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Import File URL'),
+					'#description' => t('Please enter the full internet URL of the import file.'),
+					'#default_value' => isset($def['data_lines']) ? $def['data_lines'] : '',
+					'#required' => true,
+					'#weight' => -4,	
+				);
+			}
+			else {
+				$form['#attributes'] = array('enctype' => "multipart/form-data");
+				$form['file_options']['import_file'] = array(
+					'#type' => 'file',
+					'#title' => t('Import File'),
+					'#description' => t('Please choose the file to upload.'),
+					'#weight' => -4,	
+				);			
+			}
+			
+			$form['file_options']['header_row'] = array(                                    
+		            '#type' => 'checkbox',
+		    	    '#title' => t('First row of the file contains headers.'),
+		            '#default_value' => $def['header_row'] === 0 ? false : true,
+			);
+						
+			if ($form_state['storage']['all_values']['fileformat'] == 'csv') {
+				
+				$form['file_options']['file_charset'] = array(
+						'#type' => 'select',
+						'#title' => t('Character set'),
+						'#options' => array(
+							'ISO-8859-1' => 'ISO-8859-1',
+							'UTF-8' => 'UTF-8',
+							'UTF-16' => 'UTF-16',
+							'ascii' => t('ascii: US ASCII'),
+							'cp1250' => t('cp1250: Windows Central European'),
+							'latin1' => t('latin1: West European'),
+							'swe7' => t('swe7: 7bit Swedish'),
+						),
+						'#description' => t('Leave it at ISO-8859-1 if you\'re in doubt. If characters show up incorrectly, go back and change this setting.'),
+						'#default_value' => isset($def['file_options']) ? $def['file_options'] : 'utf8',
+						'#required' => true,
+						'#weight' => 0,						
+				);
+				$form['file_options']['field_delimiter'] = array(
+					'#type' => 'select',
+					'#title' => t('Field delimiter'),
+					'#options' => array(
+						'' => t('Auto-detect'),
+						',' => t('Comma'),
+						'\t' => t('TAB'),
+						';'	=> t('Semi-colon'),
+						'|' => t('Pipe (|)'),
+					),
+					'#description' => t('What separates fields in your file?'),
+					'#default_value' => isset($def['field_delimiter']) ? $def['field_delimiter'] : '',
+					'#weight' => 1,						
+				);
+				$form['file_options']['text_qualifier'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Text Qualifier'),
+					'#size' => 5,						
+					'#description' => t('Character that is on each side of text fields. Leave empty if none.'),
+					'#default_value' => isset($def['text_qualifier']) ? $def['text_qualifier'] : '"',
+					'#weight' => 2,							
+				);
+				/*
+				$form['file_options']['escape_string'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Escape String'),
+					'#size' => 5,
+					'#description' => t('Character in front of any text qualifiers inside of a field.'),
+					'#default_value' => isset($def['escape_string']) ? $def['escape_string'] : "\\",
+					'#weight' => 3,							
+				);
+				*/
+
+			
+			}
+		
+			break;
+		
+		case 3:
+		
+			// Try to load the file
+			$validators = array(
+			  //  'file_validate_extensions' => array('xml'),
+			);		
+			if ($form_state['storage']['all_values']['frequency']) {
+				// lav http request
+				$filepath = $form_state['storage']['all_values']['import_file'];
+
+			}
+			else {
+				$file = file_save_upload('import_file', $validators);
+				$filepath = $file->filepath;
+			}
+
+			$result = lv_import_get_file_content($filepath, $form_state['storage']['all_values']['fileformat'], $form_state['storage']['all_values']['field_delimiter'], $form_state['storage']['all_values']['text_qualifier'], $form_state['storage']['all_values']['file_charset']);
+
+			if (count($result['data'])) {
+				
+				// Find out how many cols there are based on the longest record. Assign default field names, then insert field names from header row if one is present.
+				$cols = 0;
+				$header = array();
+				foreach ($result['data'] as $line) {
+					if (count($line) > $cols) $cols = count($line);
+				}
+				for ($i=0;$i<=$cols-1;$i++) {
+					$header[] = t('Field') . ' ' . (1+$i);
+				}
+			
+				if ($form_state['storage']['all_values']['header_row']) {
+				
+					foreach ($result['header'] as $key => $row) {
+						if (strlen($row) && !in_array($row, $header)) $header[$key] = $row;
+					}
+					/*				
+					$header_row = array_shift($lines);
+					foreach ($header_row as $key => $row) {
+						if (strlen($row)) $header[$key] = $row;
+					}
+					*/
+				}
+
+			
+				$sample_lines = array_slice($result['data'], 0, 50);
+//echo '<pre>'; print_r($result['header']); echo '</pre><pre>'; print_r($sample_lines); echo '</pre>';
+				$form['check_lines'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Verify Data'),
+					'#description' => t('Please check that these sample lines from the import file looks corrent. If everything looks ok, continue. Otherwise please go back and change the import settings, then try again.'),
+					'#collapsible' => false,	
+					'sample_table' => array(
+						'#value' => '<div style="font-size: 0.8em; overflow: scroll;">' . theme_table($header, $sample_lines) . '</div>',
+					),
+					'data_header' => array(
+						'#type' => 'value',
+						'#value' => $header,
+					),
+					'data_lines' => array(
+						'#type' => 'value',
+						'#value' => $filepath,
+					),
+				);
+			
+			
+			}
+			
+		
+			break;
+		
+		case 4:
+			
+			// Create a main array for all operations concering field associations.
+			// If a field has to match certain pre-defined values in our DB then add them here (Except categories - better wait until next sted bc too much data)
+			
+			$fa = array(
+				'model' => array(
+					'title' => t('Unique Product ID'),
+					'required' => true,
+					'description' => t('Typically the SKU. Duplicates are now allowed.'),
+					'group' => 'required',
+				),
+				'title' => array(
+					'title' => t('Product Name'),
+					'required' => true,	
+					'group' => 'required',				
+				),					
+				'body' => array(
+					'title' => t('Product Description'),
+					'required' => true,	
+					'group' => 'required',				
+				),					
+				'category' => array(
+					'title' => t('Product Category'),
+					'required' => true,	
+					'group' => 'required',				
+				),					
+				'sell_price' => array(
+					'title' => t('Sell Price'),
+ 					'description' => t('If you omit this or the field you choose contains a zero value, bargaining will be enabled for the item.'),					
+					'group' => 'pricing',
+					'validate' => array(
+						'datatype' => 'decimal',
+					),
+					'default' => 0,
+				),					
+				'pkg_qty' => array(
+					'title' => t('Package Quantity'),
+ 					'description' => t('How many individual retails items are there in each lot?'),	
+					'group' => 'pricing',	
+					'validate' => array(
+						'datatype' => 'integer',
+					),								
+				),					
+				'field_price_per_piece' => array(
+					'title' => t('Price is for Whole Lot or Per Item?'),	
+ 					'description' => t('Determines if the price is for the whole lot or per individual retail item in the lot. If price is per retail item, stock level should be 1.'),					
+					'group' => 'pricing',
+					'allowed' => array(
+						1 => t('Price is Per Item'),
+						0 => t('Price is for Whole Lot'),
+					),
+					'default' => 0,						
+				),											
+				'default_qty' => array(
+					'title' => t('Miminum Purchase Quantity'),
+					'description' => t('The minimum quantity that someone can buy or bid on. Normally only used if items in the lot are sold piece by piece.'),		
+					'group' => 'pricing',
+					'default' => 1,
+					'validate' => array(
+						'datatype' => 'integer',
+					),
+				),									
+				'bartering' => array(
+					'title' => t('Enable Bargaining for the Item'),	
+					'group' => 'pricing',
+					'allowed' => array(
+						1 => t('Enable'),
+						0 => t('Disable'),
+					),
+					'default' => 1,
+				),
+				'is_multiple' => array(
+					'title' => t('If bargaining is enabled, users can bid on more than one piece at a time.'),	
+					'group' => 'pricing',
+					'allowed' => array(
+						1 => t('Enable'),
+						0 => t('Disable'),
+					),
+					'default' => 1,
+				),										
+				'use_stock' => array(
+					'title' => t('Enable Stock Management'),
+					'description' => t('If enabled, the system will keep track on how many lots/items are left, etc. If a stock of 0 is reached, item will be unpublished'),
+					'group' => 'stock',
+					'allowed' => array(
+						1 => t('Enable'),
+						0 => t('Disable'),
+					),
+					'default' => 1,					
+				),					
+				'stock_level' => array(
+					'title' => t('Stock Level'),
+					'group' => 'stock',
+					'default' => 1,		
+					'validate' => array(
+						'datatype' => 'integer',
+					),					
+				),					
+				'threshold' => array(
+					'title' => t('Low Stock Warning Level'),
+					'description' => t('When this stock level is reached, a warning e-mail will be sent to you. <em>Omit or set to 0 to disable.</em>'),
+					'group' => 'stock',
+					'default' => 0,			
+					'validate' => array(
+						'datatype' => 'integer',
+					),									
+				),						
+				'status' => array(
+					'title' => t('Published'),
+					'description' => t('<em>All items will be published if this is omitted.</em>'),
+					'allowed' => array(
+						1 => t('Published'),
+						0 => t('Not published'),	
+					),				
+					'group' => 'optional',
+					'default' => 1,		
+				),					
+				'type' => array(
+					'title' => t('Item type: Bulk lot or Retail item'),
+					'description' => t('<em>All items will be bulk lots if this is omitted.</em>'),
+					'group' => 'optional',
+					'allowed' => array(
+						'consumer' => t('Retail Item'),
+						'vareparti' => t('Bulk Lot'),
+					),
+					'default' => 'vareparti',					
+				),					
+				'field_condition' => array(
+					'title' => t('Item Condition'),	
+					'description' => t('The physical condition of the item: New, used, etc.'),
+					'group' => 'optional',
+					'allowed' => array(
+						0 => t('New, packaging intact'),
+						1 => t('New'),
+						2 => t('Good as new'),
+						3 => t('Slightly used'),
+						4 => t('Used'),
+						5 => t('Some Tear'),
+						6 => t('Defective'),
+						7 => t('Condition unknown'),
+					),
+					'default' => 1,						
+				),					
+				'list_price' => array(
+					'title' => t('Retail Price'),	
+					'description' => t('The price that this product would cost in shops. Used in retail items to show how much the consumer will save.'),
+					'group' => 'retail_items',
+					'validate' => array(
+						'datatype' => 'decimal',
+					),					
+				),					
+				'delivery' => array(
+					'title' => t('Delivery Time'),
+					'description' => t('Is the product physically in your possession, or how long will it take to deliver.'),
+					'group' => 'delivery',
+					'allowed' => array(
+						0 => t('In stock'),
+						1 => t('1-3 days'),
+						2 => t('1-7 days'),
+						3 => t('1-2 weeks'),
+						4 => t('1-3 weeks'),
+						5 => t('More than 1 month'),
+						6 => t('More than 3 months'),
+					),
+					'default' => 0,
+				),					
+				'delivery_details' => array(
+					'title' => t('Delivery Details'),
+					'description' => t('Text that describes details regarding delivery. <em>If omitted, the standard delivery details from your profile will be used.</em>'),
+					'group' => 'delivery',
+				),					
+				'weight' => array(
+					'title' => t('Weight'),
+					'group' => 'delivery',
+					'validate' => array(
+						'datatype' => 'decimal',
+					),
+					'default' => 0,					
+				),					
+				'weight_units' => array(
+					'title' => t('Weight Units'),
+					'group' => 'delivery',
+					'allowed' => array(
+						'lb' => t('Pounds'),
+						'kg' => t('Kilo'),
+						'oz' => t('Ounces'),
+						'g' => t('Gram'),
+					),
+					'default' => 'kg',
+				),					
+				'shippable' => array(
+					'title' => t('Item is shippable'),
+					'description' => t('Determines if the item is an actual physical product that can be shipped. <em>True if omitted.</em>'),
+					'group' => 'delivery',
+					'allowed' => array(
+						1 => t('Shippable'),
+						0 => t('Not shippable'),
+					),
+					'default' => 1,						
+				),					
+			);																															
+			
+			$fieldgroups = array(
+				'required' => t('Required Fields'),
+				'pricing' => t('Pricing and Sale Method'),
+				'stock' => t('Stock Management'),
+				'optional' => t('Optional Basis Information'),
+				'retail_items' => t('Retail Items Only'),
+				'delivery' => t('Delivery Information'),
+			);
+			
+			// Make options based on fields in imported file
+//print_r($form_state['values']['data_header']);			
+			$options = array('__omit' => t('*** OMIT THIS FIELD ***'), '__specify' => t('UN-ASSIGNED: Allow me to specify a default value for all items.'));
+			foreach ($form_state['values']['data_header'] as $row) {
+				$options[$row] = $row;
+			}
+			
+			$form['field_association_intro'] = array(
+				'#value' => '<p>' . t("You now have to connect the fields in the imported file to the properties of our product listings. Only a few fields are required, so you don't have to provide all the details that our system can handle. However, the more detail, the more appealing your product listings will be to our users.") . '</p>',
+			);
+			
+			// Print the fieldsets for making associations
+			foreach ($fieldgroups as $key => $title) {
+				$form['fieldgroup_' . $key] = array(
+					'#type' => 'fieldset',
+					'#title' => $title,
+					'#collapsible' => TRUE,						
+					'#collapsed' => false,
+				);
+				
+				foreach ($fa as $fkey => $field) {
+					if ($field['group'] == $key) {
+						$form['fieldgroup_' . $key][$fkey] = array(
+							'#type' => 'select',
+							'#title' => $field['title'],
+							'#description' => isset($field['description']) ? $field['description'] : false,
+							'#options' => $options,
+							'#required' => isset($field['required']) ? true : false,
+							'#default_value' => isset($def[$fkey]) ? $def[$fkey] : '',
+						);
+					}	
+				}
+			}
+			
+			// Create a list of available field tokens for use in image patterns:
+			$image_tokens = '[[' . implode(']], [[', $form_state['values']['data_header']) . ']]';
+			
+			// Get some info about how to handle images 
+			$form['image_handling'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Image Handling'),
+				'#collapsible' => true,
+				'#collapsed' => false,
+				'#description' => t("Please provide some information about how we can find the item's images. You can associate up to 10 images with each item. Images must be available on a web server, so we can download them. Please specify the pattern for each image."),
+				'base_image_path' => array(
+					'#type' => 'textfield',
+					'#title' => t('Base Image URL'),
+					'#description' => t('Specify the base URL to prepend to all the filename patterns you are specifying below. <strong>Example:</strong> <em>http://www.yourcompany.com/uploads/pictures/</em>'),
+					'#default_value' => isset($def['base_image_path']) ? $def['base_image_path'] : '',
+				),
+				'image_pattern_help' => array(
+					'#title' => t('Help with image patterns'),
+					'#value' => '<h2>' . t('Help with image patterns') . '</h2><p>' . t("In the input fields below, you can enter patterns for up to 10 images per item. Patterns can contain tokens for field names, inserted like this: <em>[[Field Name]]</em>. Such a token will be replaced with the actual value of that field.") . '</p>
+							<p>' . t('So, if your input file has specific fields that contain the file names of pictures, all you have to do is type in ...<br /><strong>Example:</strong> <em>[[Your Picture Field]]</em></p>
+							<p>In many cases, the images will be named after the product SKU or other id. In such case you would have to append the file type to create the whole file name...<br /><strong>Example:</strong> <em>[[Your Picture Field]].jpg</em></p>
+							<p>Here is a list of available field tokens: <em>!tokens</em>.</p>', array('!tokens' => $image_tokens)),
+				),
+			);
+			
+			for ($i=1;$i<=10;$i++) {
+				$form['image_handling']['image_' . $i] = array(
+					'#type' => 'textfield',
+					'#title' => t('Image') . ' ' . $i,
+					'#size' => 80,
+					'#default_value' => isset($def['image_' . $i]) ? $def['image_' . $i] : '',
+				);
+			}
+			
+			$form['data_fa'] = array(
+				'#type' => 'value',
+				'#value' => $fa,
+			);
+		
+			break;
+		
+		case 5:
+		
+			// Populate the main associations array with the chosen fields
+			$fa = $form_state['values']['data_fa'];
+			foreach ($fa as $key => $item) {
+				$fa[$key]['field'] = $form_state['values'][$key];
+//echo '<pre>' . print_r($fa[$key]); echo '</pre><hr>';
+//echo '<pre>' . print_r($form_state['values'][$key]); echo '</pre><hr>';							
+			}
+			
+			// Get the array with the imported file array
+			//$lines = $form_state['values']['data_lines'];
+			$result = lv_import_get_file_content($form_state['storage']['all_values']['data_lines'], $form_state['storage']['all_values']['fileformat'], $form_state['storage']['all_values']['field_delimiter'], $form_state['storage']['all_values']['text_qualifier'], $form_state['storage']['all_values']['escape_string']);			
+			$lines = $result['data'];
+
+			// Get category options
+	        $tree = taxonomy_get_tree(4);
+			$options = array(0 => t('Please choose ...'));
+			if ($tree) {
+			    foreach ($tree as $term) {
+					if ($term->parents[0] == 0) {
+						$options[$term->name] = array();
+	                    $children = taxonomy_get_children($term->tid);
+	                    foreach ($children as $child) {
+							$options[$term->name][$child->tid] = $child->name;                    
+	                    }
+	                }
+			    }
+				$fa['category']['allowed'] = $options;
+	      	}    	
+			
+			// Create a field group for fields that will get a single value for all rows.
+			$form['fieldgroup_specify'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Please enter values for un-associated fields'),
+				'#description' => t("These properties will not take their values from your imported file. Instead you must state a value for each field. This value will apply to all items."),
+				'#collapsible' => true,
+				'#collapsed' => false,
+			);
+			
+			$help_text = t('This field can only contain specific pre-defined values. Please state how values in your import file should correspond to these pre-defined values.');	
+			foreach ($fa as $key => $field) {
+//echo '<pre>' . print_r($field); echo '</pre>';
+/*				if ($key == 'category') {
+				
+				*/
+				if ($field['field'] == '__omit') {
+					$form['fa_map_' . $key] = array(
+						'#type' => 'value',
+						'#value' => $field['default'],
+					);
+				
+				}
+				else if ($field['field'] == '__specify') {
+					if (isset($field['allowed'])) {
+						$form['fieldgroup_specify']['fa_map_' . $key] = array(
+							'#type' => 'select',
+							'#title' => $field['title'],
+							'#description' => $field['description'],
+							'#required' => true,
+							'#default_value' => isset($def['fa_map_' . $key]) ? $def['fa_map_' . $key] : $field['default'],
+							'#options' => $field['allowed'],
+						);
+					}
+					else {
+						$form['fieldgroup_specify']['fa_map_' . $key] = array(
+							'#type' => 'textfield',
+							'#title' => $field['title'],
+							'#required' => $field['required'],
+							'#default_value' => isset($def['fa_map_' . $key]) ? $def['fa_map_' . $key] : $field['default'],
+							'#description' => $field['description'],
+						);					
+					}
+
+				} 
+				else if (isset($field['allowed'])) {
+					
+					$fa[$key]['field_values'] = array();
+					$counter = 0;
+					foreach ($lines as $line) {
+//echo '<pre>' . print_r($line); echo '</pre>';					
+						if ($counter == count($field['allowed'])*3) break;
+						
+						if (!strlen($line[$field['field']])) $line[$field['field']] = t('(Empty field)');
+						if (!in_array($line[$field['field']], $fa[$key]['field_values'])) {
+							$fa[$key]['field_values'][$line[$field['field']]] = $line[$field['field']];
+							$counter++;
+/*							
+echo '<pre>' . print_r($field['field_values']); echo '</pre><hr>';
+echo '<pre>COUNT ' . $counter; echo '</pre><hr>';
+echo '<pre>MAX ' . count($field['allowed'])*3; echo '</pre><hr>';
+*/
+						}
+					}
+					
+					$form['field_ass_' . $key] = array(
+						'#type' => 'fieldset',
+						'#title' => $field['title'],
+						'#description' => isset($field['description']) ? $help_text . '<br /><br />' . $field['description'] : $help_text,
+						'#collapsible' => true,
+						'#collapsed' => false,
+					);
+					
+					foreach (array_keys($fa[$key]['field_values']) as $value) {
+						$form['field_ass_' . $key]['fa_map_' . $key . '_' . urlencode(str_replace('.', 'PKT', $value))] = array(
+							'#type' => 'select',
+							'#title' => $value,
+							'#options' => $field['allowed'],
+							'#required' => true,
+							'#default_value' => isset($def['fa_map_' . $key . '_' . urlencode(str_replace('.', 'PKT', $value))]) ? $def['fa_map_' . $key . '_' . urlencode(str_replace('.', 'PKT', $value))] : $field['default'],
+						);
+					}
+				
+				}
+				else {
+				
+				
+				
+				}
+			
+			}
+			
+			// Add the image patterns to the main mapping array and make a little example with links, so user can check URLs
+			$form['check_pictures'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Check Images'),
+				'#description' => t("Here are some example image URL's based on the patterns you have entered. You can click on some of the links to check that images show up correctly."),
+				'#collapsible' => true,
+				'#collapsed' => false,
+			);
+			
+			$fa['image_patterns'] = array();
+			for ($i=1;$i<=10;$i++) {
+				if (strlen($form_state['values']['image_' . $i])) {
+					$fa['image_patterns'][] = trim($form_state['values']['base_image_path'] . $form_state['values']['image_' . $i]);
+				}
+			}
+	
+			for ($i=1;$i<=20;$i++) {
+				$test_images = _lv_import_get_item_images($fa['image_patterns'], $lines[$i]);
+				
+				$images_ul = '';
+				foreach ($test_images as $image) {
+					$images_ul .= '<li><a href="' . $image . '" target="_blank">' . $image . '</a></li>';					
+				}
+				
+				$form['check_pictures']['check_image_' . $i] = array(
+					'#title' => t('Item') . ' ' . $i,
+					'#value' => '<ul>' . $images_ul . '</ul>',
+				);				
+
+			}
+			
+			$form['data_fa'] = array(
+				'#type' => 'value',
+				'#value' => $fa,
+			);			
+		
+			break;
+			
+		case 6:
+		
+			$fa = $form_state['values']['data_fa'];
+			
+			foreach ($fa as $key => $field) {
+				if (isset($field['field_values'])) {
+					$fa[$key]['value'] = array();				
+					foreach ($field['field_values'] as $value) {
+						if (isset($form_state['values']['fa_map_' . $key . '_' . urlencode(str_replace('.', 'PKT', $value))])) $fa[$key]['value'][$value] = $form_state['values']['fa_map_' . $key . '_' . urlencode(str_replace('.', 'PKT', $value))];
+					}
+					if (isset($fa[$key]['value'][t('(Empty field)')])) {
+						$fa[$key]['value'][''] = $fa[$key]['value'][t('(Empty field)')];
+						unset($fa[$key]['value'][t('(Empty field)')]);
+					}
+				}
+				else {
+					if (isset($form_state['values']['fa_map_' . $key])) $fa[$key]['value'] = $form_state['values']['fa_map_' . $key];
+				}
+			
+			}
+			
+			
+			
+			//echo '<pre>'; print_r($fa); echo '</pre><hr>';
+//			echo '<pre>'; print_r($form_state['storage']['all_values']); echo '</pre><hr>';
+
+			$result = lv_import_get_file_content($form_state['storage']['all_values']['data_lines'], $form_state['all_values']['fileformat'], $form_state['all_values']['field_delimiter'], $form_state['all_values']['text_qualifier'], $form_state['all_values']['escape_string']);			
+			$lines = $result['data'];
+			
+//			echo '<pre>'; print_r($lines); echo '</pre><hr>';
+			
+			$result_array = __lv_import_prepare_lines($lines, $fa);
+//			echo '<pre>'; print_r($result_array); echo '</pre><hr>';
+			
+			$form['show_result'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Data Check Results'),
+				'#description' => t("Here you'll see any warnings or errors that occured while we checked your file. You can import your file despite errors, but the lines that caused the errors will not be included. Lines with warnings will be imported."),
+				'#collapsible' => false,
+				'result_data' => array(
+					'#value' => __lv_import_result_table($result_array),
+				),
+			);
+			
+			if (isset($result_array['summary']['warning'])) {
+				$form['show_warnings'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Warning details'),
+					'#description' => t("Showing up to 100 lines that returned warnings."),
+					'#collapsible' => true,
+					'#collapsed' => true,
+					'result_warning_data' => array(
+						'#value' => __lv_import_result_lines($result_array, $lines, $fa, 'warning', 100),
+					),
+				);
+			}
+			
+			if (isset($result_array['summary']['error'])) {
+				$form['show_errors'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Error details'),
+					'#description' => t("Showing up to 100 lines that returned errors."),
+					'#collapsible' => true,
+					'#collapsed' => true,
+					'result_error_data' => array(
+						'#value' => __lv_import_result_lines($result_array, $lines, $fa, 'error', 100),
+					),
+				);
+			}			
+				
+			$form['data_fa'] = array(
+				'#type' => 'value',
+				'#value' => $fa,
+			);					
+						
+			break;
+	}
+	
+  if ($form_state['storage']['step'] > 1) {
+    $form['previous'] = array(
+      '#type' => 'submit',
+      '#value' => t('<< Previous'),
+    );
+  }
+  if ($form_state['storage']['step'] != 6) {
+    $form['next'] = array(
+      '#type' => 'submit',
+      '#value' => t('Continue >>'),
+    );
+  }
+  else {
+    $form['finish'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save Import Agent'),
+    );
+  }	
+
+
+	return $form;
+
+}
+
+function lv_import_agent_form_submit($form, &$form_state) {
+  //Save the values for the current step into the storage array.
+  $form_state['storage']['values'][$form_state['storage']['step']] = $form_state['values'];
+  if (!is_array($form_state['storage']['all_values'])) $form_state['storage']['all_values'] = array();
+  $form_state['storage']['all_values'] = $form_state['values'] + $form_state['storage']['all_values'];
+
+  //Check the button that was clicked and change the step.
+  if ($form_state['clicked_button']['#id'] == 'edit-previous') {
+    $form_state['storage']['step']--;
+  }
+  elseif ($form_state['clicked_button']['#id'] == 'edit-next') {
+    $form_state['storage']['step']++;
+  }
+  elseif ($form_state['clicked_button']['#id'] == 'edit-finish') {
+    //You should store the values from the form in the database here.
+
+	//$fa = $form_state['values']['data_fa'];
+	$agent_id = (int)$form_state['storage']['all_values']['import_id'];
+	$account_id = (int)$form_state['storage']['all_values']['account_id'];
+	
+	$record = array(
+		'uid' => $account_id,
+		'settings' => serialize($form_state['storage']['all_values']),
+		'frequency' => (int)$form_state['storage']['all_values']['frequency'],
+		'last_imported' => time(),
+		'last_result' => '',
+		'status' => 1,
+	);
+
+	if ($agent_id > 0) {
+		$record['import_id'] = $agent_id;
+		$update = array('import_id', 'uid');
+		drupal_write_record('lv_import', $record, $update);            
+	} else {
+		drupal_write_record('lv_import', $record);            								            
+    }    
+
+    //We must do this or the form will rebuild instead of refreshing.
+    unset($form_state['storage']);
+
+    //Go to this page after completing the form.
+    $form_state['redirect'] = 'user/' . $account_id . '/import';
+  }
+}
+
+
+function __lv_import_result_lines($result_array, $lines, $fa, $type = 'error', $count = 100) {
+	$counter = 0;
+	$result = array();	
+//echo '<pre>'; print_r($result_array); echo '</pre><hr>';	
+	foreach ($result_array['lines'] as $line_id => $line) {
+		if (isset($line[$type])) {
+			$result[] = '<div>' . t('Row !row (@title):', array('!row' => $line_id, '@title' => $lines[$line_id][$fa['title']['field']])) . '<ul>';
+			foreach ($line[$type] as $row) {
+				$result[] = '<li>' . $row . '</li>';
+			}
+			$result[] = '</ul></div>';			
+		}
+	
+		$counter++;	
+		if ($counter == $count) break;
+	}
+	
+	return implode('', $result);
+}
+
+
+function __lv_import_summary_table($result) {
+	
+	$return = '<table><thead></thead><tbody><tr><td colspan="2">' . t('File contains <strong>@lines</strong> lines', array('@lines' => count($result['lines'])));
+	$return .= '</td></tr><tr><td>' . t('New items added:') . '</td><td>' . $result['tally'][1] . '</td></tr><tr><td>' . t('Existing items updated:') . '</td><td>' . $result['tally'][2] . '</td></tr><tr><td>' . t('Skipped items:') . '</td><td>' . $result['tally'][3] . '</td></tr>';
+	$return .= '<tr><td>' . t('Items that caused an error:') . '</td><td>' . $result['tally'][4] . '</td></tr><tr><td colspan="2">&nbsp;</td></tr>';
+	if ($result['tally'][5]) $return .= '<tr><td>' . t('Deleted items:') . '</td><td>' . $result['tally'][5] . '</td></tr>';
+	if (count($result['images'])) $return .= '<tr><td>' . t('Images imported:') . '</td><td>' . count($result['images']) . '</td></tr>';	
+	$return .= '</tbody></table>';
+	
+	return $return;
+}
+
+function __lv_import_result_table($result) {
+	$rows = array();
+	
+	$rows[] =  '<br />' . t('File contains <strong>@lines</strong> lines', array('@lines' => count($result['lines'])));
+
+	if (isset($result['summary']['warning'])) {
+	
+		$rows[] = '<br /><br /><strong>' . t('Warnings') . ':</strong><br />';
+		foreach ($result['summary']['warning'] as $field) {
+			$rows[] = '&nbsp;&nbsp;' . t('Field <strong>@field:</strong>', array('@field' => $field['field'])) . '<br />'; 
+			foreach ($field['messages'] as $message) {
+				$rows[] = '&nbsp;&nbsp;&nbsp;&nbsp;- ' . t('<strong>@count</strong> fields return this warning: <strong>!message</strong>', array('@count' => $message['count'], '!message' => $message['text']));
+			}
+		}
+		
+	}
+	
+	if (isset($result['summary']['error'])) {
+	
+		$rows[] = '<br /><br /><strong>' . t('Errors') . ':</strong><br />';
+		foreach ($result['summary']['error'] as $field) {
+			$rows[] = '&nbsp;&nbsp;' . t('Field <strong>@field:</strong>', array('@field' => $field['field'])) . '<br />'; 
+			foreach ($field['messages'] as $message) {
+				$rows[] = '&nbsp;&nbsp;&nbsp;&nbsp;- ' . t('<strong>@count</strong> fields return this error: <strong>!message</strong>', array('@count' => $message['count'], '!message' => $message['text']));
+			}
+		}
+		
+	}	
+	
+	return implode('', $rows);
+}
+
+
+function __lv_import_prepare_lines(&$lines, $fa) {
+	
+	$result = array('ids' => array(), 'lines' => array(), 'summary' => array()); // Passed on to line preparation function to accumulate all errors and warnings. The 'ids' part is used to accumulate id's to check for duplicates.
+	foreach ($lines as $key => $line) {
+		$lines[$key] = __lv_import_prepare_line($fa, $key, $line, $result);
+	}
+	
+	// This was only for control during validation, so we don't need it anymore
+	unset($result['ids']);
+	
+	return $result;
+}
+
+function __lv_import_prepare_line($fa, $key, $line, &$result) {
+
+	// Check for duplicate or empty SKU values. Return error if found
+	if (in_array($line[$fa['model']['field']], $result['ids'])) {
+		$result = __lv_import_line_error($result, $key, $fa['model']['field'], 'ID field not unique.');
+	}
+	elseif (!strlen($line[$fa['model']['field']])) {
+		$result = __lv_import_line_error($result, $key, $fa['model']['field'], 'ID field is empty.');			
+	}
+	else {
+		$result['ids'][] = $line[$fa['model']['field']];
+	}
+	
+	// Check that item has a title
+	if (!strlen($line[$fa['title']['field']])) {
+		$result = __lv_import_line_error($result, $key, $fa['title']['field'], 'Title is empty.');					
+	} 
+
+	// Warn if no description
+	if (!strlen($line[$fa['body']['field']])) {
+		$result = __lv_import_line_error($result, $key, $fa['body']['field'], 'Description is empty. Title will be used instead.', 'warning');	
+		$line[$fa['body']['field']] = $line[$fa['title']['field']];				
+	} 		
+
+	// Error if no category
+	if (!in_array($line[$fa['category']['field']], array_keys($fa['category']['value']))) {
+		$result = __lv_import_line_error($result, $key, $fa['category']['field'], 'Category is un-assigned.');					
+	} 		
+	
+	// Go through regular validation processes for each field
+	foreach ($fa as $vkey => $vfield) {
+		if (isset($line[$vfield['field']]) && isset($vfield['validate']) && is_array($vfield['validate'])) {
+			$errors = array();
+			foreach ($vfield['validate'] as $valtype => $valvalue) {
+				if ($valtype == 'datatype') {
+					switch ($valvalue) {
+						case 'integer':
+							if (is_numeric($line[$vfield['field']])) {
+								$line[$vfield['field']] = (int)$line[$vfield['field']];
+							}
+							else {
+								$errors[] = t('This field should be a whole number.');								
+							}
+								
+							break;
+						
+						case 'decimal':
+							$line[$vfield['field']] = str_replace(',', '.', $line[$vfield['field']]);
+							if (!is_numeric($line[$vfield['field']])) {
+								$errors[] = t('This field should be a number with or without decimals.');								
+							}						
+						
+							break;
+					}
+				}
+			}
+			
+			if (count($errors)) {
+				foreach ($errors as $error) {
+					if ($fa['default_on_error']) {
+						$line[$vfield['field']] = $vfield['default'];
+						$error .= ' ' . t('Default value <strong>!value</strong> used instead.', array('!value' => $vfield['default']));
+						$result = __lv_import_line_error($result, $key, $vfield['field'], $error, 'warning');
+					}
+					else {
+						$result = __lv_import_line_error($result, $key, $vfield['field'], $error);
+					}
+				}			
+			}
+		}
+	}
+	
+	return $line;
+
+
+}
+
+function __lv_import_line_error($result, $line_id, $field_id, $text, $type = 'error') {
+	// Add line to lines array along with the error or warning text
+	if (!is_array($result['lines'][$line_id][$type])) $result['lines'][$line_id][$type] = array();
+	$result['lines'][$line_id][$type][] = $field_id ? '<strong>' . $field_id . ':</strong> ' . $text : $text;
+	
+	// Add the error or warning to the summary
+	if (!is_array($result['summary'][$type][$field_id])) {
+		$result['summary'][$type][$field_id] = array(
+			'field' => $field_id,
+			'messages' => array(),
+			'count' => 0
+		);
+	}
+	
+	if (!is_array($result['summary'][$type][$field_id]['messages'][$text])) {
+		$result['summary'][$type][$field_id]['messages'][$text] = array(
+			'text' => $text,
+			'count' => 0
+		);
+	}	
+	
+	$result['summary'][$type][$field_id]['count']++;
+	$result['summary'][$type][$field_id]['messages'][$text]['count']++;
+	
+	return $result;	
+	
+}
+
+function lv_import_get_file_content(&$filepath, $file_format, $field_delimiter = ',', $text_qualifier = '"', $charset = '') {
+
+	$result = false;
+
+	if ($file_format == 'xls') {
+		
+	}
+	else if ($file_format == 'xml') {
+	    if ($xml = simplexml_load_file($filepath)) {	
+			
+			$result = $xml;
+		}		
+	}
+	else {
+	
+		if (!file_exists($filepath)) {
+	
+			// If file doesn't exist on the server, we assume it is placed somewhere else. Initiate HTTP request to fetch remote file content. Bc of safety restrictions we have to create a file on our own server and save the content.
+			$http_errors = array();
+			$filepath = _lv_import_get_external_file($filepath, $http_errors);
+
+		}
+		
+		$csv = new parseCSV();
+		if (strlen($charset)) $csv->input_encoding = $charset;
+		$csv->convert_encoding = true;
+		$csv->output_encoding = 'UTF-8';
+		$csv->enclosure = $text_qualifier;
+		if (strlen($field_delimiter)) {
+			$csv->delimiter = $field_delimiter;
+			$csv->parse($filepath);
+		}
+		else {
+			$csv->auto($filepath);
+		}
+		$result = array(
+			'header' => $csv->titles,
+			'data' => $csv->data,
+		);
+	}
+
+
+	return $result;
+}
+
+function _lv_import_get_item_images($patterns, $item) {
+	$result = array();
+	$tokens = array_keys($item);
+	
+	foreach ($patterns as $pattern) {
+		foreach ($tokens as $token) {
+			$pattern = str_replace('[[' . $token . ']]', $item[$token], $pattern);
+		}
+		
+		$result[] = $pattern;	
+	}
+	
+	return $result;
+}
+
+function _lv_import_get_external_file($filepath, &$errors, $userpath = '') {
+
+	$r= new HttpRequest($filepath, HttpRequest::METH_GET);
+	try {
+	    $r->send();
+	    if ($r->getResponseCode() == 200) {
+			$pathparts = explode('/', $filepath);
+			$savepath = realpath('sites/default/files') . '/lv_import' . $userpath; 
+			file_check_directory($savepath, FILE_CREATE_DIRECTORY);
+			$savepath .= '/' . $pathparts[count($pathparts)-1];	
+	        $filepath = file_save_data($r->getResponseBody(), $savepath, FILE_EXISTS_REPLACE);
+	    }
+		else {
+			$filepath = false;
+		}
+	} catch (HttpException $ex) {
+	    echo $ex;
+	}
+
+	return $filepath;
+}
+
+
+
+function _lv_run_import($import_id, $filepath = '') {
+		
+	if ($agent = db_fetch_array(db_query("SELECT uid, settings, last_imported, frequency, last_result, status FROM {lv_import} WHERE import_id = %d", $import_id))) {
+	
+		global $user;
+		if ($user->uid == $agent['uid'] || user_access('administer users')) {
+
+			$settings = unserialize($agent['settings']);
+			
+			// Prepare a map of lines to nodes in an array, so we don't have to query the db on each line to check if the line already has a node associated with it.
+			$rs = db_query('SELECT l.* FROM {lv_import_lines} l JOIN {lv_import} i ON (l.import_id = i.import_id) WHERE i.uid = %d', $agent['uid']);	     
+			$dbmap = array();
+			$del_pool = array(); // Make a list of nodes that has become orphan due to removal from the customers imported catalogue.
+			while ($row = db_fetch_array($rs)) {
+				$dbmap[$row['serial']] = $row;
+				if ($row['nid'] > 0 && $settings['auto_delete']) $del_pool[$row['serial']] = $row['nid']; // First we add all nodes here. Then we remove them one by one when we confirm they still exist. Remaining should be deleted.
+			}
+			
+			if ($filepath == '') $filepath = $settings['data_lines'];
+			
+			$result = lv_import_get_file_content($filepath, $settings['fileformat'], $settings['field_delimiter'], $settings['text_qualifier'], $settings['file_charset']);			
+
+			// Prepare lines and check for errors. Errors are accumulated in returned array. The $lines that are passed to this function is modified with the prepared lines.
+			$validation = __lv_import_prepare_lines($result['data'], $settings['data_fa']);
+
+
+			// Create the batch function array and put dbmap in session, so we can keep track of node ids during all the batch processing
+			$operations = array();
+
+			// Put the import id into the fa array, cause we'll need it for making db updates in the end
+			$settings['data_fa']['import_id'] = $settings['import_id'];
+		
+
+			foreach ($result['data'] as $key => $line) {
+
+				$line_serial = $line[$settings['data_fa']['model']['field']];
+				
+				if (isset($del_pool[$line_serial])) unset($del_pool[$line_serial]);
+		
+				// Don't try to import lines that have errors
+				if (!isset($validation['lines'][$key]['error'])) {
+
+					// Put the create/update node function in the batch
+					$operations[] = array(
+						'_lv_import_batch_import_line',
+						array(
+							$line,
+							$settings['data_fa'],
+							$agent['uid'],
+							$dbmap,
+							$key,
+							$validation,
+						)
+					);					
+					
+					// See if there are image paths to try off
+					$item_images = _lv_import_get_item_images($settings['data_fa']['image_patterns'], $line);
+					
+					// Put a function in batch for each possible image path. If an image is found, it is addded to the node.
+					foreach ($item_images as $imagepath) {
+						$operations[] = array(
+							'_lv_import_batch_import_image',
+							array(
+								$line_serial,
+								$imagepath,
+								$agent['uid']
+							)
+						);
+						
+					}
+				
+				}
+				else {
+
+					if (isset($dbmap[$line_serial])) {
+						$record = $dbmap[$line_serial];
+						$update = array('serial', 'import_id');
+					}
+					else {
+						$record = array(
+							'serial' => $line_serial,
+							'import_id' => $settings['import_id'],
+							'nid' => 0,
+							'changed' => time(),
+						);
+					}
+					
+					$record['fields'] = serialize($line);
+					$record['status'] = 4;
+					$record['message'] = t('Error. Product couldn\'t be updated. Reason: !theerror', array('!theerror' => implode(', ', $validation['lines'][$key]['error'])));
+
+					if (is_array($update)) {
+						drupal_write_record('lv_import_lines', $record, $update);            
+					} else {
+						drupal_write_record('lv_import_lines', $record);            								            
+				    }    					
+					
+				}
+				
+			}
+
+			// Delete any nodes that aren't in the catalogue anymore.
+			
+			if ($settings['auto_delete'] && count($del_pool)) {			
+				
+				foreach ($del_pool as $del_serial => $del_nid) {
+				
+					$operations[] = array(
+						'_lv_import_batch_delete_line',
+						array(
+							$del_serial,
+							$settings['import_id'],
+							$del_nid,
+						)
+					);					
+				
+				}
+			
+			
+			}
+			
+					
+		  if (!empty($operations)) {
+		    $batch = array(
+		      'operations' => $operations,
+		      'finished' => '_lv_import_batch_finished',
+		      'title' => t('Importing catalogue and images'),
+		      'init_message' => t('Getting ready to import.'),
+		      'progress_message' => t('Finished @current out of @total operations.'),
+		      'error_message' => t('Import has encountered an error.'),
+		    );
+		    batch_set($batch);
+			batch_process();
+		  }					
+
+		
+		}
+	
+	}
+
+}
+
+
+function _lv_import_batch_import_line($line, $fa, $account, $dbmap, $line_key, $summary, &$context) {
+
+		if (!isset($context['results']['dbmap'])) {
+			$context['results']['dbmap'] = $dbmap;
+			$context['results']['summary'] = $summary;
+			$context['results']['summary']['tally'] = array(1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0);
+			$context['results']['summary']['images'] = array();
+			$context['results']['import_id'] = $fa['import_id'];
+		}
+
+		if (is_array($context['results']['dbmap'][$line[$fa['model']['field']]])) {
+			$record = $context['results']['dbmap'][$line[$fa['model']['field']]];
+			$update = array('import_id', 'serial');
+		}
+		else {
+			$record = array(
+				'import_id' => $fa['import_id'],
+				'nid' => 0,
+				'status' => 3,
+			);
+		}
+		
+		$record['fields'] = serialize($line);
+		$record['changed'] = time();		
+
+		if ((int)$record['nid'] > 0) {	            
+			$node = node_load($record['nid']);
+			$record['message'] = t('Product updated.');
+			$record['status'] = 2;
+		}
+    	if (!is_object($node)) {
+			$node = new StdClass();
+			$node->nid = NULL;  
+        	$node->vid = NULL;
+			$node->uid = $account;
+			$record['message'] = 'Product added.';
+			$record['status'] = 1;
+    	}					
+		
+		$node->model = $node->sku = $record['serial'] = $line[$fa['model']['field']];
+		$node->title = $line[$fa['title']['field']];
+		$node->body = _lv_import_node_value($fa['body'], $line); 
+    	$node->type = _lv_import_node_value($fa['type'], $line); 
+	    $node->is_bartering = _lv_import_node_value($fa['bartering'], $line);
+		$node->is_multiple = _lv_import_node_value($fa['bartering'], $line);
+   	    $node->pkg_qty = _lv_import_node_value($fa['pkg_qty'], $line);
+    	$node->default_qty = _lv_import_node_value($fa['default_qty'], $line);
+    	$node->field_condition[0]['value'] = _lv_import_node_value($fa['field_condition'], $line);
+        $node->field_delivery[0]['value'] = _lv_import_node_value($fa['delivery'], $line);
+		//$node->field_delivery_details = _lv_import_node_value($settings['data_fa']['delivery'], $line);	//----------------------
+		$node->field_price_per_piece[0]['value'] = _lv_import_node_value($fa['field_price_per_piece'], $line);
+    	$node->shippable = _lv_import_node_value($fa['shippable'], $line);
+    	$node->use_stock = _lv_import_node_value($fa['use_stock'], $line);
+        $node->threshold = _lv_import_node_value($fa['threshold'], $line);
+   		$node->stock_level = _lv_import_node_value($fa['stock_level'], $line);
+		$node->weight = _lv_import_node_value($fa['weight'], $line);
+		$node->weight_units = _lv_import_node_value($fa['weight_units'], $line);
+        $node->status = _lv_import_node_value($fa['status'], $line);					
+
+		$cat = taxonomy_get_term(_lv_import_node_value($fa['category'], $line));
+		$node->taxonomy[$cat->tid] = $cat;
+
+		if ($node->is_auction) {
+			$record['message'] = 'An auction is running for this item. Item skipped..';
+			$record['status'] = 3;				
+			$context['results']['summary'] = __lv_import_line_error($context['results']['summary'], $line_key, 0, $record['message'], $type = 'status');
+		}
+		else {
+			if ($node->uid == $account) node_save($node);
+			if ($node->nid) {
+				$record['nid'] = $node->nid;
+				$context['results']['dbmap'][$record['serial']] = $record;
+				$context['results']['summary'] = __lv_import_line_error($context['results']['summary'], $line_key, 0, $record['message'], $type = 'status');
+			}
+			else {
+				$record['status'] = 4;
+				$record['message'] = t('System error. Product couldn\'t be saved.');
+				$context['results']['summary'] = __lv_import_line_error($context['results']['summary'], $line_key, 0, $record['message'], $type = 'error');
+			}
+		}
+		
+		$context['results']['summary']['tally'][$record['status']]++;
+		
+		if (is_array($update)) {
+			drupal_write_record('lv_import_lines', $record, $update);            
+		} else {
+			drupal_write_record('lv_import_lines', $record);            								            
+	    } 
+
+}
+
+function _lv_import_batch_delete_line($serial, $import_id, $nid, &$context) {
+	db_query("DELETE FROM {lv_import_lines} WHERE serial = '%s' AND import_id = %d", $serial, $import_id);
+	if ($nid > 0) node_delete($nid);
+	$context['results']['summary']['tally'][5]++;
+}
+
+function _lv_import_batch_import_image($line_id, $imagepath, $account, &$context) {
+
+	$nid = $context['results']['dbmap'][$line_id]['nid'];
+
+	$errors = array();
+	if ($filepath = _lv_import_get_external_file($imagepath, $errors, '/' . $account)) {
+
+		if ($info = image_get_info($filepath)) {
+		    //$type = 'filefield';
+			$field_name = 'field_image_cache';
+		
+		    // get the field and its validators
+		    $field = content_fields($field_name);
+		    $validators = imagefield_widget_upload_validators($field);
+	
+		    // make sure that the directory exists
+		    $directory = filefield_widget_file_path($field);
+		    field_file_check_directory($directory, FILE_CREATE_DIRECTORY);
+		
+		    // save the file and add it to the node
+		    if ($file = field_file_save_file($filepath, $validators, $directory)) {
+		      $file['original_path'] = $filepath;
+		      $node = node_load($nid, NULL, TRUE);
+		
+		      // actually do the adding
+		      $field_name = $field['field_name'];
+		      array_push($node->$field_name, $file);
+		
+		      // pretend we're saving the node from a node form to please modules like filefield_paths
+		      $node->form_id = $node->type .'_node_form';
+		
+		      $node = node_submit($node);
+		      node_save($node);
+			  
+			  $context['results']['summary']['images'][] = $imagepath;
+		
+   	          file_delete($filepath);
+		    }
+	    }	
+	
+	}	
+}
+
+function _lv_import_batch_finished($success, $results, $operations) {
+
+	$agent = db_fetch_array(db_query("SELECT settings, uid, frequency FROM {lv_import} WHERE import_id = %d", $results['import_id']));
+	$settings = unserialize($agent['settings']);
+
+	$record = array(
+		'import_id' => $results['import_id'],
+		'last_imported' => time(),
+		'last_result' => serialize($results['summary']),
+	);
+	drupal_write_record('lv_import', $record, 'import_id');  
+	
+	$return = '<h2>' . t('Import finished') . '</h2>';
+	$return .= '<h3>' . t('Summary of import') . '</h3>' . __lv_import_summary_table($results['summary']);
+	$return .= '<h3>' . t('Warnings and errors') . '</h3>' . __lv_import_result_table($results['summary']);	
+
+	if ($settings['mail_report'] && $agent['frequency'] > 0) {
+		$user = user_load($agent['uid']);
+		$output = $return . '<p>' . t('Click this link to visit your import agent page:@link', array('@link' => '<br />' . l(t('Import Agents'), 'user/' . $results['account'] . '/import/' . $results['import_id']))) . '</p>';
+		drupal_mail('lv_import', 'import-results-notice', $user->mail, user_preferred_language($user), array('user' => $user, 'mailbody' => $return));
+	}	  
+	
+	drupal_set_message($return);
+
+}
+
+// Finds out whether the line's field value should be used, or if to use a fixed value entered, or to use the default.
+function _lv_import_node_value($model, $line) {
+	if ($model['field'] == '__omit') {
+		return $model['default'];
+	}
+	else if ($model['field'] == '__specify') {
+		return $model['value'];
+	}
+	else {
+		if (isset($model['allowed'])) {
+			return $model['value'][$line[$model['field']]];
+		}
+		else {
+			return $model['value'];
+		}
+	
+	}
+	
+
+}
+
+/**
+ * Implementation of hook_mail().
+ */
+function lv_import_mail($key, &$message, $params) {
+  if ($key == 'import-results-notice') {
+      $message['subject'] = t('Result of import');
+      $message['from'] = variable_get('uc_store_email', 'info@lagervarer.dk');
+
+	  if (!$params['user']->mimemail_textonly) {
+	      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+	  }	
+	  $message['body'][] = $params['mailbody'];		
+	     
+ 
+  }
+}
+
+
+// Deleteion:
+
+function lv_import_agent_delete_form(&$form_state, $account, $import_id = 0) {
+		
+	if ($agent = db_fetch_array(db_query("SELECT settings, last_imported, frequency, last_result, status FROM {lv_import} WHERE uid = %d AND import_id = %d", $account->uid, $import_id))) {
+
+		$settings = unserialize($agent['settings']);
+
+		$form = array(
+			'account_id' => array(
+				'#type' => 'value',
+				'#value' => $account->uid,			
+			),
+			'import_id' => array(
+				'#type' => 'value',
+				'#value' => $import_id,
+			),
+			'confirm_prompt' => array(
+				'#type' => 'fieldset',
+				'#title' => t('Delete import agent: ' . $settings['name']),
+				'#collapsible' => false,
+				'message' => array(
+					'#value' => '<p>' . t('Do you really want to delete this import agent? This cannot be undone.') . '</p>',
+				),
+			),		
+			'delete_button' => array(
+  				'#type' => 'submit',
+  				'#value' => t('Delete Import Agent'),
+			),						
+		);
+		
+		return $form;
+		
+	}	
+}			
+			
+function lv_import_agent_delete_form_submit($form, &$form_state) {
+
+	db_query("DELETE FROM {lv_import} WHERE uid = &d AND import_id = %d", $form_state['values']['account'], $form_state['values']['import_id']);
+	db_query("DELETE FROM {lv_import_lines} WHERE import_id = %d", $form_state['values']['import_id']);
+
+	drupal_set_message(t('Import agent deleted.'));
+	$form_state['redirect'] = 'user/' . $form_state['values']['account'] . '/import';
+	
+}

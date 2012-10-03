@@ -1,0 +1,513 @@
+<?php
+// $Id$
+
+/**
+* @file
+* Module for managing newsletters, other e-mail stuff, etc. Also modifications for MailChimp and other e-mail modules.
+*/
+
+
+
+/**
+ * Implementation of hook_perm().
+ */
+function lv_newsletters_perm() {
+	return array('send out newsletters');
+} 
+
+
+/**
+ * Implementation of hook_theme().
+ */
+function lv_newsletters_theme($existing, $type, $theme, $path) {
+	return array(
+		'lv_newsletters_campaign_management_table' => array(
+			'arguments' => array('form' => NULL),
+		),
+	);
+}   
+
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function lv_newsletters_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+
+	if ($node->type == 'vareparti' || $node->type == 'consumer') {
+		switch ($op) {
+			case 'insert': 
+	        	if ($node->include_in_mail) {
+					db_query("INSERT INTO lv_newsletter_products (newsletter_nid, product_nid) VALUES (%d, %d)", $node->include_in_mail, $node->nid);                         
+	            }
+				break;
+			
+	        case 'update':
+				if ($node->include_in_mail) {
+		        	if (!db_result(db_query('SELECT id FROM lv_newsletter_products WHERE newsletter_nid = %d AND product_nid = %d', $node->include_in_mail, $node->nid))) {
+						db_query("INSERT INTO lv_newsletter_products (newsletter_nid, product_nid) VALUES (%d, %d)", $node->include_in_mail, $node->nid);
+		            }  
+				}
+				else {
+					db_query('DELETE FROM lv_newsletter_products WHERE newsletter_nid = %d AND product_nid = %d', $node->include_in_mail, $node->nid);
+				}
+
+				break;  
+	
+			case  'delete':
+				db_query('DELETE FROM lv_newsletter_products WHERE newsletter_nid = %d AND product_nid = %d', $node->include_in_mail, $node->nid);
+				break;
+				
+			case 'load':
+				if ($result = db_fetch_array(db_query('SELECT newsletter_nid FROM lv_newsletter_products WHERE product_nid = %d', $node->nid))) {				        
+					$node->include_in_mail = $result['newsletter_nid'];
+				}
+				break;
+					
+		}
+	}
+	else if ($node->type == 'newsletter') {
+		if ($op == 'load') {
+			$node->newsletter_products = array();
+        	if ($rs = db_query('SELECT product_nid FROM lv_newsletter_products WHERE newsletter_nid = %d', $node->nid)) {
+				while ($row = db_fetch_array($rs)) {
+					$node->newsletter_products[] = $row['product_nid'];
+				}
+            } 	
+			
+		    if ($q = _mailchimp_get_api_object()) {	  
+		
+				  if ($rs = db_query('SELECT campaign_id FROM lv_campaigns WHERE nid = %d', $node->nid)) {
+				  	$campaign_ids = array();
+					while ($query = db_fetch_array($rs)) {
+				    	$campaign_ids[] = $query['campaign_id'];
+					}
+			
+					if (count($campaign_ids)) {
+						$node->mailchimp_campaigns = array();
+						foreach ($campaign_ids as $cid) {	
+							$node->mailchimp_campaigns[] = array_shift($q->campaigns(array('campaign_id' => $cid)));
+						}
+					}
+				  } 
+			}					
+		}
+		else if ($op == 'view') {
+
+			if (user_access('send out newsletters')) { 
+				if (isset($node->mailchimp_campaigns)) {
+					$node->content['body']['#value'] .= '<br /><br />' . drupal_get_form('lv_newsletters_campaign_management_form', $node);
+				}
+				$node->content['body']['#value'] .= '<br /><br />' . drupal_get_form('lv_newsletters_new_campaign_form', $node);		
+
+
+			}
+			
+			if (count($node->newsletter_products)) {
+				$node->content['body']['#value'] = str_replace('[[PRODUCTS]]', lv_search_product_table($node->newsletter_products), $node->content['body']['#value']);
+			}				
+		}
+
+	}
+}
+
+
+/**
+* Implementation of hook_form_alter()
+*/
+function lv_newsletters_form_alter(&$form, $form_state, $form_id) {
+//echo $form_id;
+	$path = explode('/', $_GET['q']);
+	if ($form_id == 'user_register') {
+	    if ($path[2] == 'private') {
+			unset($form['mailchimp_list_forms']['wrapperb26332b73e']);
+		} else {
+			unset($form['mailchimp_list_forms']['wrapper5a0f796080']);		
+		}
+	}
+	else if ($form_id == 'mailchimp_subscribe_auth_form') {
+		global $user;
+	    if (in_array(10, array_keys($user->roles))) {
+			unset($form['wrapperb26332b73e']);
+		} else {
+			unset($form['wrapper5a0f796080']);		
+		}		
+	}
+	else if (user_access('send out newsletters') && ($form_id == 'vareparti_node_form' || $form_id == 'consumer_node_form')) {
+
+		$letters = array('' => '');
+		if ($rs = db_query("SELECT n.nid, ct.field_name_value FROM node n JOIN content_type_newsletter ct ON (n.nid = ct.nid) WHERE n.status = 1 AND n.type = 'newsletter' AND (ct.field_is_template_value = 0 OR ct.field_is_template_value IS NULL)")) {				        
+			while ($result = db_fetch_array($rs)) {
+				$letters[$result['nid']] = $result['field_name_value'];
+			}
+		}
+
+        $form['lv_promotions'] = array (
+        	'#type' => 'fieldset',
+            '#title' => t('ADMIN: Promote this item'),
+			'#collapsible' => TRUE,
+            '#collapsed' => $form['#node']->include_in_mail ? false : true,
+			'include_in_mail' => array(
+				'#type' => 'select',
+				'#title' => t('Send out in this e-mail'),
+				'#description' => t('This item will be included in the selected newsletter.'),
+				'#default_value' => $form['#node']->include_in_mail,
+				'#weight' => 0,
+				'#options' => $letters,
+			),
+		);
+
+	}	
+
+	
+}
+
+
+/**
+ * Form for managing MailChimp campaigns.
+ */
+function lv_newsletters_campaign_management_form(&$form_state, $node) {
+    if (user_access('send out newsletters') && $q = _mailchimp_get_api_object()) {	  
+ 
+	  
+//print_r($node);
+		$form = array(
+	    	'#theme' => 'lv_newsletters_campaign_management_table',
+	        '#submit' => array('lv_newsletters_campaign_management_form_submit'),
+	        '#validate' => array('lv_newsletters_campaign_management_form_validate'),
+			'nid' => array(
+				'#type' => 'value',
+				'#value' => $node->nid,
+			),
+	        'bulk_action' => array(
+	        	'#type' => 'select',  
+				'#title' => t('Do this with the checked campaigns'),                        
+				'#options' => array(
+					'' => '',
+					'test' => t('Send test e-mail'),
+					'schedule' => t('Schedule Delivery'),
+					'un-schedule' => t('Un-Schedule'),
+					'delete' => t('Delete'),
+				),
+	        ),	
+	        'test_email' => array(
+	        	'#type' => 'textfield',                          
+				'#title' => t('Test e-mail address'),
+				'#default_value' => 'kontakt@lagervarer.dk',
+	        ),				
+			'save' => array(
+				'#type' => 'submit',
+		       	'#name' => 'save_changes',                    
+				'#value' => t('Save Changes'),
+				'#description' => t('Further administration of campaigns can happen through the MailChimp web interface.'),
+			),						
+		);
+
+		foreach ($node->mailchimp_campaigns as $campaign) {
+			$form['chk_' . $campaign['id']] = array(
+				'#type' => 'checkbox',
+			);
+			
+			if (!$campaign['send_time']) {
+				$form['send_' . $campaign['id']] = array(
+					'#type' => 'date_popup',
+	                '#date_format' => 'd-m-Y H:i',
+				);
+			}
+		}
+		
+		return $form;
+	
+	}
+
+}
+
+/**
+ * Validate the campaign management form.
+ */
+function lv_newsletters_campaign_management_form_validate($form, &$form_state) {
+	
+	if (!user_access('send out newsletters')) {
+	  drupal_goto('user/register');
+	}
+	
+	
+
+//    $node = node_load($form_state['values']['nid']);
+       
+} 
+
+/**
+ * Submit new campaign.
+ */
+function lv_newsletters_campaign_management_form_submit($form, &$form_state) {
+
+	if ($q = _mailchimp_get_api_object()) {
+	
+		$node = node_load($form_state['values']['nid']);
+		
+		foreach ($node->mailchimp_campaigns as $campaign) {
+			if ($form_state['values']['chk_' . $campaign['id']]) {
+				switch ($form_state['values']['bulk_action']) {
+					case 'test':
+						if ($form_state['values']['test_email']) {
+							if ($q->campaignSendTest($campaign['id'], array($form_state['values']['test_email']), 'html') && $q->campaignSendTest($campaign['id'], array($form_state['values']['test_email']), 'text')) {
+								$messages[] = t('Sent test messages for campaign <strong>@camp</strong> to <strong>@mail</strong>.', array('@camp' => $campaign['title'], '@mail' => $form_state['values']['test_email']));
+							} else {
+								drupal_set_message(t('Could not send test messages for campaign <strong>@camp</strong> to <strong>@mail</strong>.', array('@camp' => $campaign['title'], '@mail' => $form_state['values']['test_email'])), 'error');
+							}
+						}
+						break;
+						
+					case 'schedule':
+					
+					
+						break;
+					
+					case 'un-schedule':
+					
+					
+						break;
+						
+						
+					case 'delete':
+						if (!$campaign['send_date']) {
+							if ($q->campaignDelete($q->campaignDelete($campaign['id']), 'html')) {
+								$messages[] = t('Campaign <strong>@camp</strong> was deleted.', array('@camp' => $campaign['title']));
+								db_query("DELETE FROM lv_campaigns WHERE campaign_id = '%s'", $campaign['id']);
+							} else {
+								drupal_set_message(t('Could not delete campaign <strong>@camp</strong>.', array('@camp' => $campaign['title'])), 'error');
+							}
+						}					
+						break;
+			
+				}			
+			
+			
+			}
+		}
+		
+		if (count($messages)) {
+			drupal_set_message('<h2>' . t('These changes were made:') . '</h2><ul><li>' . implode('</li><li>', $messages) . '</li></ul>');	
+		}
+		else {
+			drupal_set_message(t('<strong>No changes were made!</strong> Please remember to check the checkboxes next to the items you wish to modify.'), 'warning');
+		}		
+	
+	}
+}
+
+/**
+ * Theme the campaign management form.
+ */
+function theme_lv_newsletters_campaign_management_table($form) {
+
+	if ($q = _mailchimp_get_api_object()) {
+
+		$node = node_load($form['nid']['#value']);
+
+		$rows = array();
+		foreach ($node->mailchimp_campaigns as $campaign) {
+			$lists = $q->lists();	
+			foreach ($lists as $list) {
+				if ($list['id'] == $campaign['list_id']) $list_name = $list['name'] . ' (' . $list['member_count'] . ')';
+			}
+			
+			$row = array();
+			$row[] = $campaign['send_time'] ? '' : drupal_render($form['chk_' . $campaign['id']]);
+			$row[] = $list_name;
+			$row[] = '<a href="' . $campaign['archive_url'] . '" target="_blank">' . $campaign['title'] . '</a>';
+			$row[] = $campaign['status'];
+			$row[] = isset($form['send_' . $campaign['id']]) ? drupal_render($form['send_' . $campaign['id']]) : $campaign['send_time'];
+			
+			$rows[] = '<tr><td>' . implode('</td><td>', $row) . '</td></tr>';
+		}
+		
+		$output = '<table class="uc-auction-bid-table"><thead><tr><th></th><th>' . t('List') . '</th><th>' . t('Newsletter Name') . '</th><th>' . t('Status') . '</th><th>' . t('Send time') . '</th></tr></thead><tbody>' . implode('', $rows) . '</tbody></table>';
+		$output .= drupal_render($form['bulk_action']) . drupal_render($form['test_email']) . drupal_render($form['save']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']);
+	
+		return $output;
+	
+	}
+	
+}
+
+
+
+/**
+ * Form for managing nodes that are sent out as MailChimp campaigns.
+ */
+function lv_newsletters_new_campaign_form(&$form_state, $node) {
+    if (user_access('send out newsletters') && $q = _mailchimp_get_api_object()) {	  
+
+	  $templates = array('' => '');
+	  $templates_raw = $q->CampaignTemplates();
+	  foreach ($templates_raw as $temp) {
+	  	$templates[$temp['id']] = $temp['name'];
+	  }
+	  
+	  $lists = array('' => '');
+	  $lists_raw = $q->lists();
+	  foreach ($lists_raw as $list) {
+	  	$lists[$list['id']] = $list['name'] . ' (' . $list['member_count'] . ')';
+	  }
+
+		$reminders = array('' => '');
+		if ($rs = db_query('SELECT n.nid, ct.field_name_value FROM node n JOIN content_type_newsletter ct ON (n.nid = ct.nid) WHERE ct.field_is_template_value = 1')) {				        
+			while ($result = db_fetch_array($rs)) {
+				$reminders[$result['nid']] = $result['field_name_value'];
+			}
+		}	  
+	  
+//print_r($node);
+		$form = array(
+//	    	'#theme' => 'lv_newsletters_new_campaign',
+	        '#submit' => array('lv_newsletters_new_campaign_form_submit'),
+	        '#validate' => array('lv_newsletters_new_campaign_form_validate'),
+			'nid' => array(
+				'#type' => 'value',
+				'#value' => $node->nid,
+			),
+			'new_campaign' => array(
+				'#type' => 'fieldset',
+				'#title' => t('Create new e-mail campaign'),
+				'#collapsible' => true,
+				'#collapsed' => true,
+				'list' => array(
+					'#type' => 'select',
+					'#title' => t('List'),
+					'#description' => t('Which list should this campaign be sent to?'),
+					'#options' => $lists,
+					'#required' => true,
+					'#weight' => -8,
+				),
+				'template' => array(
+					'#type' => 'select',
+					'#title' => t('Template'),
+					'#description' => t('Which MailChimp template should be used?'),
+					'#options' => $templates,
+					'#required' => true,
+					'#weight' => -5,
+				),			
+				'subject' => array(
+					'#type' => 'textfield',
+					'#title' => t('E-mail subject'),
+					'#size' => 80,
+					'#default_value' => $node->title,
+					'#required' => true,
+					'#weight' => -4,				
+				),
+				'reminder1' => array(
+					'#type' => 'select',
+					'#title' => t('First reminder template'),
+					'#options' => $reminders,
+					'#weight' => 0,
+				),
+				'reminder2' => array(
+					'#type' => 'select',
+					'#title' => t('Second reminder template'),
+					'#options' => $reminders,
+					'#weight' => 1,				
+				),
+	/*			'facebook' => array(
+					'#type' => 'select'
+					'#options' => $fb_pages,
+				),*/
+				'create' => array(
+					'#type' => 'submit',
+			       	'#name' => 'create_campaign',                    
+					'#value' => t('Create Campaign'),
+					'#description' => t('The campaign will be created, but not scheduled. You will be able to test and schedule the campaign afterwards.'),
+					'#weight' => 8,		
+				),	
+			),			
+			
+		);
+		
+		return $form;
+	
+	}
+
+}
+
+/**
+ * Validate the create campaign form.
+ */
+function lv_newsletters_new_campaign_form_validate($form, &$form_state) {
+	
+	if (!user_access('send out newsletters')) {
+	  drupal_goto('user/register');
+	}
+
+//    $node = node_load($form_state['values']['nid']);
+       
+} 
+
+/**
+ * Submit new campaign.
+ */
+function lv_newsletters_new_campaign_form_submit($form, &$form_state) {
+
+	if ($q = _mailchimp_get_api_object()) {
+	
+		$node = node_load($form_state['values']['nid']);
+
+		$options = array(
+			'list_id' => $form_state['values']['list'],
+			'subject' => $form_state['values']['subject'],
+			'from_email' => 'noreply@lagervarer.dk',
+			'from_name' => 'Lagervarer.dk',
+			'to_name' => '*|FORNAVN|* *|EFTERNAVN|*',	
+			'authenticate' => true,
+			'template_id' => $form_state['values']['template'],
+		);
+	
+		$html_products = lv_search_product_table($node->newsletter_products);
+		$plain_products = array();
+		foreach ($node->newsletter_products as $nid) {
+			$product = node_load($nid);
+			$plain_products[] = $product->title . ":\n" . url('node/' . $product->nid, array('absolute' => true));
+		}
+		
+		$html_content = nl2br($node->body);
+		$html_content = str_replace('[[PRODUCTS]]', $html_products, $html_content);
+
+		$plain_content = $node->field_description[0]['value'];
+		$plain_content = str_replace('[[PRODUCTS]]', implode("\n\n", $plain_products), $plain_content);
+		
+		$content = array(
+			'html_main' => $html_content,
+			'text' => $plain_content,
+		);			
+
+		if ($campaign_id = $q->campaignCreate('regular', $options, $content)) {
+			db_query("INSERT INTO lv_campaigns (nid, campaign_id) VALUES (%d, '%s')", $node->nid, $campaign_id);
+		}
+
+		$reminders = array($form_state['values']['reminder1'], $form_state['values']['reminder1']);
+		foreach ($reminders as $reminder) {
+			if ((int)$reminder > 0) {
+				$reminder_node = node_load($reminder);
+				
+				$html_content = nl2br($reminder_node->body);
+				$html_content = str_replace('[[PRODUCTS]]', $html_products, $html_content);
+		
+				$plain_content = $reminder_node->field_description[0]['value'];
+				$plain_content = str_replace('[[PRODUCTS]]', implode("\n\n", $plain_products), $plain_content);
+				
+				$content = array(
+					'html_main' => $html_content,
+					'text' => $plain_content,
+				);	
+				
+				$options['subject'] = $reminder_node->title;	
+				
+				if ($campaign_id = $q->campaignCreate('regular', $options, $content)) {
+					db_query("INSERT INTO lv_campaigns (nid, campaign_id) VALUES (%d, '%s')", $node->nid, $campaign_id);
+				}							
+			}
+		
+		}
+	}
+}
+
+

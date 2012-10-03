@@ -1,0 +1,210 @@
+<?php
+// $Id$
+/**
+* Install the LV Search module:
+* Create lv_search table for storing searches
+* Create lv_search_notify for controlling notification intervals
+* @file
+*/
+
+/**
+* Implementation of hook_install().
+*/
+function lv_search_install() {
+	drupal_install_schema('lv_search');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function lv_search_uninstall() {
+	drupal_uninstall_schema('lv_search');
+}
+
+/**
+* Implementation of hook_schema(),
+*/
+function lv_search_schema() {
+	return array(
+		'lv_search' => array(
+			'description' => 'Table for storing searches.',
+			'fields' => array(
+				'sid' => array(
+					'description' => 'The ID number of the search.',
+					'type' => 'serial',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),
+				'stype' => array(
+					'description' => 'The type of search in form of the url base.',
+					'type' => 'varchar', 
+                    'length' => 20,					
+					'not null' => TRUE,
+					'default' => '',
+				),
+				'uid' => array(
+					'description' => 'The {user}.uid of the searcher.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+                'title' => array(
+                	'description' => 'A custom name for the search.',
+			        'type' => 'varchar',
+			        'length' => 100,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  				              
+				'created' => array(
+					'description' => 'The time the search was created.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'notify_id' => array(
+					'description' => 'The {lv_search_notify}.notify_id.',
+					'type' => 'int',
+                    'size' => 'tiny',	
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),  
+                'search_phrase' => array(
+                	'description' => 'The search phrase',
+			        'type' => 'varchar',
+			        'length' => 255,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),
+				'search_mode' => array(  				              
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 0,
+				),									
+				'is_fixed' => array(  				              
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 0,
+				),			
+				'is_bargaining' => array(  				              
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 0,
+				),				
+				'is_auction' => array(  				              
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 0,
+				),	
+				'price_from' => array(
+					'type' => 'int',  
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),				
+				'price_to' => array(
+					'type' => 'int',  
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),	
+				'price_mode' => array(  				              
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 0,
+				),									
+				'qty_from' => array(
+					'type' => 'int',  
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),				
+				'qty_to' => array(
+					'type' => 'int',  
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),	
+				'cond' => array(  				              
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 99,
+				),		
+				'delivery' => array(  				              
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 99,
+				),	
+				'categories' => array(
+			        'description' => 'A serialized array of categories or empty for all.',
+			        'type' => 'text',
+			        'not null' => TRUE,
+                    'default' => '',					
+				),	 
+				'search_uid' => array(
+					'description' => 'The {user}.uid of the owner of the searched for products.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),				
+			),
+			'primary key' => array('sid'),
+			'indexes' => array(
+				'notify_id' => array('notify_id'),
+				'uid' => array('uid'),
+			),
+		),
+		'lv_search_notify' => array(
+			'description' => 'Notification management for search.',
+			'fields' => array(
+				'notify_id' => array(
+					'description' => 'The ID number of the notification type.',
+					'type' => 'serial',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),
+                'description' => array(
+                	'description' => 'Description of the notification type.',
+			        'type' => 'varchar',
+			        'length' => 255,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  					
+				'interval' => array(
+					'description' => 'Interval between notifications in seconds',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0, 
+                ),               
+				'last_notified' => array(
+					'description' => 'UNIX timestamp for the last notification',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0, 
+                ),	
+							
+			),
+			'primary key' => array('notify_id'),
+		),
+	);
+
+}

@@ -1,0 +1,758 @@
+<?php
+// $Id$
+
+/**
+* @file
+* Module to hold Lagervarer customization for profiles
+*/
+
+
+/**
+* Implementation of hook_menu()
+*/      
+function lv_profiles_menu() {
+
+	return array(
+		'user/%user/varepartier' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(NULL, 'user/[uid]/varepartier', 'vareparti', '', 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),
+		'user/%user/varepartier_test' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(NULL, 'user/[uid]/varepartier', 'vareparti', '', 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),		
+		'user/%user/varepartier/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(NULL, 'user/[uid]/varepartier', 'vareparti', 3, 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),       
+		'user/%user/varepartier/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(NULL, 'user/[uid]/varepartier', 'vareparti', 3, 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),    
+        
+		'user/%user/varepartier/%lv_term' => array(
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/varepartier', 'vareparti', '', 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),              
+		'user/%user/varepartier/%lv_term/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/varepartier', 'vareparti', 4, 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),       
+		'user/%user/varepartier/%lv_term/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/varepartier', 'vareparti', 4, 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),     
+		'user/%user/varepartier/%lv_term/%' => array(
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/varepartier', 'vareparti', '', 1),
+			'access callback' => 'uc_custom_user_perm',
+   			'load arguments' => array(4),                        
+			'access arguments' => array(1),
+		),              
+		'user/%user/varepartier/%lv_term/%/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/varepartier', 'vareparti', 5, 1),
+   			'load arguments' => array(4),                                    
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),       
+		'user/%user/varepartier/%lv_term/%/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/varepartier', 'vareparti', 5, 1),
+   			'load arguments' => array(4),                                    
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),         
+        
+		'user/%user/lagersalg' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(NULL, 'user/[uid]/lagersalg', 'consumer', '', 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),
+		'user/%user/lagersalg/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(NULL, 'user/[uid]/lagersalg', 'consumer', 3, 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),       
+		'user/%user/lagersalg/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(NULL, 'user/[uid]/lagersalg', 'consumer', 3, 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),    
+        
+		'user/%user/lagersalg/%lv_term' => array(
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/lagersalg', 'consumer', '', 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),              
+		'user/%user/lagersalg/%lv_term/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/lagersalg', 'consumer', 4, 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),       
+		'user/%user/lagersalg/%lv_term/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/lagersalg', 'consumer', 4, 1),
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),     
+		'user/%user/lagersalg/%lv_term/%' => array(
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/lagersalg', 'consumer', '', 1),
+			'access callback' => 'uc_custom_user_perm',
+   			'load arguments' => array(4),                        
+			'access arguments' => array(1),
+		),              
+		'user/%user/lagersalg/%lv_term/%/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/lagersalg', 'consumer', 5, 1),
+   			'load arguments' => array(4),                                    
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),       
+		'user/%user/lagersalg/%lv_term/%/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'lv_profiles_product_list',
+			'page arguments' => array(3, 'user/[uid]/lagersalg', 'consumer', 5, 1),
+   			'load arguments' => array(4),                                    
+			'access callback' => 'uc_custom_user_perm',
+			'access arguments' => array(1),
+		),                 
+
+		// Profilsiden varepartier
+		'brugere/%lv_user_alias/varepartier' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, 'brugere/[alias]/varepartier', 'vareparti', '', 1),
+			'access arguments' => array('access content'),            
+		),
+		'brugere/%lv_user_alias/varepartier/auktioner' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, 'brugere/[alias]/varepartier', 'vareparti', 3, 1),
+			'access arguments' => array('access content'),            
+		),
+		'brugere/%lv_user_alias/varepartier/prisforhandling' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, 'brugere/[alias]/varepartier', 'vareparti', 3, 1),
+			'access arguments' => array('access content'),            
+		),
+
+		'brugere/%lv_user_alias/varepartier/%lv_term' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/varepartier', 'vareparti', '', 1),
+			'access arguments' => array('access content'),            
+		),
+		'brugere/%lv_user_alias/varepartier/%lv_term/auktioner' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/varepartier', 'vareparti', 4, 1),
+			'access arguments' => array('access content'),            
+		),
+		'brugere/%lv_user_alias/varepartier/%lv_term/prisforhandling' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/varepartier', 'vareparti', 4, 1),
+			'access arguments' => array('access content'),            
+		),        
+
+		'brugere/%lv_user_alias/varepartier/%lv_term/%' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/varepartier', 'vareparti', '', 1),
+			'access arguments' => array('access content'),            
+   			'load arguments' => array(4),               
+		),
+		'brugere/%lv_user_alias/varepartier/%lv_term/%/auktioner' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/varepartier', 'vareparti', 5, 1),
+			'access arguments' => array('access content'),   
+   			'load arguments' => array(4),                        
+		),
+		'brugere/%lv_user_alias/varepartier/%lv_term/%/prisforhandling' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/varepartier', 'vareparti', 5, 1),
+			'access arguments' => array('access content'),    
+   			'load arguments' => array(4),                       
+		),  
+        
+		// Profilsiden lagersalg
+		'brugere/%lv_user_alias/lagersalg' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, 'brugere/[alias]/lagersalg', 'consumer', '', 1),
+			'access arguments' => array('access content'),            
+		),
+		'brugere/%lv_user_alias/lagersalg/auktioner' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, 'brugere/[alias]/lagersalg', 'consumer', 3, 1),
+			'access arguments' => array('access content'),            
+		),
+		'brugere/%lv_user_alias/lagersalg/prisforhandling' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, 'brugere/[alias]/lagersalg', 'consumer', 3, 1),
+			'access arguments' => array('access content'),            
+		),
+
+		'brugere/%lv_user_alias/lagersalg/%lv_term' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/lagersalg', 'consumer', '', 1),
+			'access arguments' => array('access content'),            
+		),
+		'brugere/%lv_user_alias/lagersalg/%lv_term/auktioner' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/lagersalg', 'consumer', 4, 1),
+			'access arguments' => array('access content'),            
+		),
+		'brugere/%lv_user_alias/lagersalg/%lv_term/prisforhandling' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/lagersalg', 'consumer', 4, 1),
+			'access arguments' => array('access content'),            
+		),        
+
+		'brugere/%lv_user_alias/lagersalg/%lv_term/%' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/lagersalg', 'consumer', '', 1),
+			'access arguments' => array('access content'),            
+   			'load arguments' => array(4),               
+		),
+		'brugere/%lv_user_alias/lagersalg/%lv_term/%/auktioner' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/lagersalg', 'consumer', 5, 1),
+			'access arguments' => array('access content'),   
+   			'load arguments' => array(4),                        
+		),
+		'brugere/%lv_user_alias/lagersalg/%lv_term/%/prisforhandling' => array(
+			'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 3, 'brugere/[alias]/lagersalg', 'consumer', 5, 1),
+			'access arguments' => array('access content'),    
+   			'load arguments' => array(4),                       
+		),  
+                         
+                  
+		'user/register/private' => array(
+			'title' => 'Create new user',
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array('user_register'),
+			'access callback' => 'user_register_access',
+			'type' => MENU_CALLBACK,
+            'file' => 'user.pages.inc',
+			'file path' => drupal_get_path('module', 'user'),            
+            'module' => 'user',
+		),
+		'user/register/business' => array(
+			'title' => 'Create new business account',
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array('user_register'),
+			'access callback' => 'user_register_access',
+			'type' => MENU_CALLBACK,
+            'file' => 'user.pages.inc',
+			'file path' => drupal_get_path('module', 'user'),            
+            'module' => 'user',
+		),                
+	);
+
+
+}   
+
+
+function lv_profiles_product_list($tid = 0, $base_path = '', $lv_type = 'vareparti', $sale_method = '', $account = 0) {
+
+ 	$uid = is_object($account) ? $account->uid : 0;
+    $base_path = str_replace('[uid]', $uid, $base_path);
+    $base_path = str_replace('[alias]', $account->alias, $base_path);   
+
+  /* Make our own menu_local_task lookalikes */
+	$path = drupal_get_path_alias($_GET['q']); 
+    $path = str_replace('/auktioner', '', $path);
+    $path = str_replace('/prisforhandling', '', $path);    
+	$active_tab = array('' => '', 'auktioner' => '', 'prisforhandling' => '');
+  	$active_tab[$sale_method] = ' class="active"';
+	$tabs = '<div class="tabs"><ul class="tabs primary clear-block">';
+    $tabs .= '<li'.$active_tab[''].'><a'.$active_tab[''].' href="/'.$path.'">'.t('All').'</a></li>';
+    $tabs .= '<li'.$active_tab['auktioner'].'><a'.$active_tab['auktioner'].' href="/'.$path.'/auktioner">'.t('Auctions').'</a></li>';
+    $tabs .= '<li'.$active_tab['prisforhandling'].'><a'.$active_tab['prisforhandling'].' href="/'.$path.'/prisforhandling">'.t('Negotiable price').'</a></li>';
+    $tabs .= '</ul></div>';    	
+	
+	$button_text = $lv_type == 'vareparti' ? 'New Bulk Lot' : 'New Sale Item';
+	$buttons = '<div class="account-top-buttons"><a class="linkbutton" href="' . url('node/add/' . $lv_type) . '">' . t($button_text) . '</a></div>';
+
+  $output = '';
+  
+  $catalog = uc_custom_get_catalog_page((int)$tid, array($lv_type), $uid);
+  
+  if ($tid == 0 && $lv_type == 'consumer') { drupal_set_title('Lagersalg til private'); } else { drupal_set_title(check_plain($catalog->name)); }
+  drupal_set_breadcrumb(uc_catalog_set_breadcrumb($catalog->tid));
+
+  $links = array();
+  foreach ($catalog->children as $child) {
+    if (!empty($child->nodes)) {
+      $links[] = array('title' => $child->name . (variable_get('uc_catalog_breadcrumb_nodecount', FALSE) ? ' ('. $child->nodes .')' : ''), 'href' => lv_term_get_path($child, $base_path),
+        'attributes' => array('rel' => 'tag'),
+      );
+    }
+  }
+
+
+	$products = uc_custom_get_products($tid, $lv_type, $sale_method, $account, '');
+
+	if (count($links) && ($uid > 0 || $tid > 0)) {
+      $output .= theme('links', $links, array('class' => 'links inline')) ."<br />\n";
+    }
+	$output .= $buttons;
+    $output .= $catalog->description;
+	$output .= $tabs;
+
+	$output .= drupal_get_form('uc_custom_product_admin_form', $products, $account);
+
+    $output .= theme('pager');
+	
+
+	return $output;
+
+}
+
+
+function lv_user_alias_load($alias) { 
+	if ($result = db_result(db_query("SELECT src FROM {url_alias} WHERE dst = 'brugere/%s'", check_plain($alias)))) {
+   		$catalog_url = explode('/', $result);
+        $node = node_load($catalog_url[1]);
+		$account = user_load($node->uid);
+        $account->alias = $alias;
+        return $account;
+    } else {
+    	return FALSE;
+    }
+}        
+
+
+
+/**
+* Implementation of hook_menu_alter()
+*/      
+function lv_profiles_menu_alter(&$items) {
+
+
+    $items['user/register']['page callback'] = 'lv_select_usertype';
+    unset($items['user/register']['page arguments']);
+    unset($items['user/register']['file']);
+    unset($items['user/register']['module']);    
+
+/*	$items['blog']['menu_name'] = 'menu-forum';    
+	$items['blog/%user_uid_optional']['menu_name'] = 'menu-forum';*/
+	$items['og']['menu_name'] = 'menu-forum';             
+	$items['forum']['menu_name'] = 'menu-forum';            
+	$items['profile']['menu_name'] = 'menu-forum';
+	$items['messages']['menu_name'] = 'menu-forum';            
+	$items['connections/manage/twoway']['menu_name'] = 'menu-forum';                
+    
+	$items['faq']['menu_name'] = 'menu-information';   
+    
+	$items['user']['type'] = MENU_CALLBACK;                
+	$items['user/%user_uid_optional']['type'] = MENU_CALLBACK;                
+    $items['user/%user_category/edit']['type'] = MENU_CALLBACK;
+    $items['user/%user/uc-orders']['type'] = MENU_CALLBACK;
+	$items['user/%user/auctions']['type'] = MENU_CALLBACK;    
+	$items['user/%user/bids']['type'] = MENU_CALLBACK;        
+	$items['user/%user/subscriptions']['type'] = MENU_CALLBACK;            
+
+
+    
+/*	dprint_r($items);        */
+    
+//       dprint_r($items);                  
+}  
+
+                
+/**
+ * Implementation of hook_block().
+ */                               
+function lv_profiles_block($op = 'list', $delta = 0, $edit = array()) {
+	switch ($op) {
+    
+    	case 'list':
+        	$blocks[0]['info'] = t('Menu: My account');
+        	$blocks[1]['info'] = t('Menu: My activities');            
+        	$blocks[2]['info'] = t('Menu: Seller menu');
+            $blocks[10]['info'] = t('Menu: Help');
+            $blocks[11]['info'] = t('Menu: Info Topics');            
+            $blocks[12]['info'] = t('Menu: About us');                        
+            $blocks[13]['info'] = t('Menu: Forum');			
+            $blocks[14]['info'] = t('Menu: Messages');						
+            $blocks[15]['info'] = t('Menu: Blogs');									
+            $blocks[16]['info'] = t('Menu: Groups');												
+            $blocks[17]['info'] = t('Menu: Users');															
+            $blocks[30]['info'] = t('Profile: User info');                        
+
+            return $blocks;
+            
+		case 'view':
+			$subjects = array(0 => t('My account'), 1 => t('My activities'), 2 => t('Reseller menu'), 10 => t('Help'), 11 => t('Topics'), 12 => 'Lagervarer.dk', 13 => t('Forum'), 14 => t('Private messages'), 15 => t('Blogs'), 16 => t('Groups'), 17 => t('Users'), 30 => t('User details'));            
+		    global $user;
+
+
+			if ($delta < 10) {
+				if (user_edit_access($user)) {
+    		    	$blocks['subject'] = $subjects[$delta];            
+        		    $blocks['content'] = _lv_profiles_fetch_menu($delta, $user->uid, $user->roles);
+				} else {
+					$blocks = array();            
+	            }
+    		} 
+            elseif ($delta < 20) {
+    		    	$blocks['subject'] = $subjects[$delta];            
+        		    $blocks['content'] = _lv_profiles_fetch_menu($delta, $user->uid, $user->roles);
+            }
+            elseif ($delta == 30) {
+    		    	$blocks['subject'] = $subjects[$delta];            
+                    $blocks['content'] = _lv_profiles_user_info($user->uid);				
+			}    
+            
+            
+            return $blocks;
+	}
+}
+
+function _lv_profiles_fetch_menu($delta = 0, $uid = 0, $roles = '') {
+	$links = array();
+    
+	switch ($delta) {
+    	case 0:
+           	$links[] = l(t('Account overview'), 'user/'.$uid);
+			$links[] = l(t('Edit details'), 'user/'.$uid.'/edit');
+			$links[] = l(t('My contacts'), 'relationships');			
+			$links[] = l(t('Order history'), 'user/'.$uid.'/uc-orders');		                    
+			$links[] = l(t('Subscriptions'), 'user/'.$uid.'/subscriptions');		                              
+			if (in_array('administrator', array_values($roles)) || $uid == 1) {
+				$links[] = l(t('Administrator'), 'admin');		                              		    
+				$links[] = l(t('Create content'), 'node/add');		                          
+			}            
+        	break;
+		case 1:
+			$links[] = l(t('Auction bids'), 'user/'.$uid.'/auctions');            
+			$links[] = l(t('Bargaining bids'), 'user/'.$uid.'/bids');                        
+			break;
+		case 2:
+			$links[] = l(t('My sales'), 'user/'.$uid.'/sales');
+			$links[] = l(t('My bulk lots'), 'user/'.$uid.'/varepartier');
+			$links[] = l(t('My retail items'), 'user/'.$uid.'/lagersalg');            
+			$links[] = l(t('Add new bulk lot'), 'node/add/vareparti');			                                
+			$links[] = l(t('Add new retail item'), 'node/add/consumer');	
+			global $user;
+			if (user_access('import products', $user)) $links[] = l(t('Import Catalogue'), 'user/'.$uid.'/import');            
+			break;            
+		case 10:
+			$links[] = l(t('Help topics'), 'information/faq');
+            break;
+		case 11:
+			$links[] = l(t('Prices'), 'information/priser');
+			$links[] = l(t('Terms of use'), 'information/regler');
+			$links[] = l(t('Legal contract'), 'information/handelsbetingelser');                        
+            break;  
+		case 12:
+			$links[] = l(t('About Lagervarer.dk'), 'information/om-os');
+			$links[] = l(t('Contact us'), 'information/kontakt');            
+            break;            
+		case 13:
+			$links[] = l(t('Forum'), 'community');
+			$links[] = l(t('All forums'), 'forum');
+			$links[] = l(t('New forum topic'), 'node/add/forum');                        
+            break;  
+		case 14:
+			$links[] = l(t('My messages'), 'messages');
+			$links[] = l(t('Send new message'), 'messages/new');
+            break;  
+		case 15:
+			$links[] = l(t('Blogs'), 'blog');
+			$links[] = l(t('My blog'), 'blog/'.$uid);									
+			$links[] = l(t('New blog post'), 'node/add/blog');									
+            break;  						
+		case 16:
+			$links[] = l(t('Group list'), 'og');
+			$links[] = l(t('My groups'), 'og/my');
+			$links[] = l(t('Unread group posts'), 'group');			
+			$links[] = l(t('Create new group'), 'node/add/group');						
+            break;  									
+		case 17:
+			$links[] = l(t('All users'), 'profile');
+			$links[] = l(t('Contacts'), 'relationships');
+            break;  										
+	}
+    
+    return '<ul class="menu"><li>'.join($links, '</li><li>').'</li></ul>';
+
+}  
+
+function _lv_profiles_user_info($uid = 0, $hor = FALSE) {
+	if ($uid == 0) {
+ 		global $user;
+        $uid = $user->uid;   
+    }
+    if ( arg(0) == 'node' && is_numeric(arg(1)) && ! arg(2) ) {
+		$node = node_load(arg(1));
+		$author = user_load($node->uid);
+	}
+    elseif ( arg(0) == 'brugere' && arg(1) ) {
+		$author = lv_user_alias_load(arg(1));
+    }
+    if ($node->type != 'profile') {
+		$profile = node_load(array('type' => 'profile', 'uid' => $author->uid)); 
+    }              
+
+	$result = '<div class="profile-block-content">';    
+	if ($hor) { $result .= '<div id="profile-column-1" class="profile-column">'; }
+	if (isset($node->field_avatar[0]) || isset($profile->field_avatar[0])) {
+	    $result .= $node->type == 'profile' ? '<div class="profile-avatar">'.theme('imagecache', 'thumb', $node->field_avatar[0]['filepath']).'</div>' : '<div class="profile-avatar">'.l(theme('imagecache', 'thumb', $profile->field_avatar[0]['filepath']), $author->profile_path, array('html' => TRUE)).'</div>';
+	} else {
+	    $result .= $node->type == 'profile' ? '<div class="profile-avatar"><img src="/sites/all/themes/zenlager/images/avatar-none-150.png" width="150" height="150" /></div>' : '<div class="profile-avatar">'.l('<img src="/sites/all/themes/zenlager/images/avatar-none-150.png" width="150" height="150" />', $author->profile_path, array('html' => TRUE)).'</div>';    	
+	}                
+
+    $result .= '<div class="profile-details">';    
+    $display_name = $node->type == 'profile' ? $author->name : l($author->name, $author->profile_path);
+	
+	if ($address = db_fetch_array(db_query("SELECT street, additional, city, province, country, postal_code, phone FROM {addresses_user} WHERE eid = %d", $author->uid))) {		    
+    	require_once(drupal_get_path('module', 'addresses').'/addresses.inc');
+        $countries = _addresses_country_get();
+        
+		$result .= '<div class="profile-name profile-city"><img align="absmiddle" width="20" height="20" alt="'.$countries[$address['country']].'" src="/sites/all/themes/zenlager/images/countries/'.$address['country'].'.png" /> '.$display_name.'</div>';		
+		$result .= '<div class="profile-address-line">'.$address['street'].'</div>';
+		if ($address['additional']) $result .= '<div class="profile-address-line">'.$address['additional'].'</div>';
+		$result .= '<div class="profile-address-line">'. lv_city_postcode($address['city'], $address['postal_code'], $address['country']) .'</div>';
+		if ($address['province']) $result .= '<div class="profile-address-line">'.$address['province'].'</div>';
+		if ($address['country'] <> 'dk') $result .= '<div class="profile-address-line">'. $countries[$address['country']] . '</div>';
+		if ($address['phone']) $result .= '<div class="profile-address-line">' . t('Tel. ') . lv_format_phone($address['phone']) .'</div>';
+	}
+	else {
+		$result = '<div class="profile-name profile-city">'.$display_name.'</div>';	
+	}
+    $result .= '</div>';
+    if ($hor) { $result .= '</div><div id="profile-column-2" class="profile-column">'; }
+    $result .= '<div class="profile-links">';
+    
+	
+    $result .= lv_profiles_friendlist_links($author);
+    $result .= l(t('Send private message'), 'messages/new/'.$author->uid, array('attributes' => array('class' => 'icon-link icon-message')));
+
+    $result .= '</div>';
+	if ($hor) {
+		$result .= '</div><div id="profile-column-3" class="profile-column">'.lv_pages_trim($profile->field_description[0]['value'], 500).'</div><div style="clear: both;"></div>';
+    }
+
+    $result .= '</div>';
+
+	return $result;
+}             
+
+
+/**
+ * Return an HTML-formatted list of links for EVERY relation type for the user.
+ */
+function lv_profiles_friendlist_links($account) {
+  /*global $user;
+  $account = friendlist_api_user_into_uid($account);
+
+  if ($user->uid == $account) {
+    return '';
+  }
+
+  if (!user_access('have relationships with friendlist')) {
+    return '';
+  }
+
+  $output = '';
+
+      $status      = friendlist_api_relation_status_get($user, $account, 2);
+
+      if ($status == 'TW_BOTH') {
+	      $output .= '<div class="friendlist-relation-info">'.t('You are friends').'</div>';
+          $output .= l(t('Remove from friends'), "friendlist/delete/$account/2", array('attributes' => array('class' => 'icon-link icon-minus')));
+	  }
+      else {
+          $output .= l(t('Add to friends'), "friendlist/add/$account/2", array('attributes' => array('class' => 'icon-link icon-plus')));      
+      }
+
+
+  return $output;*/
+}
+
+
+
+
+function lv_select_usertype() {
+	
+	$result = '<h2>'.t('Choose user type').'</h2><p>'.t('!site_name allows you to register as a private individual looking to make a bargain on cheap wholesale items from our many sellers looking to clear out their stocks, or you can register as a business or sole trader to buy and sell bulk lots, and to sell individual products directly to the end user.', array('!site_name' => variable_get('site_name', ''))).'</p>';
+	$result .= '<div class="usertype-free">'.t('Registration is completely free!').'</div>';
+	$result .= '<div id="usertype-container"><div class="lv-box"><div class="usertype-image"><img src="/sites/all/themes/zenlager/images/registerConsumer.gif" /></div><div class="usertype-content"><h3>'.t('Private individual').' <span class="small red"><strong>'.t('- Sale of products not possible!').'</strong></span></h3><p>'.t('Choose this user type, if you just want to look for cheap offers on wholesale items from the many traders and businesses on !site_name.', array('!site_name' => variable_get('site_name', ''))).'</p>';
+    $result .= '<div class="usertype-button">'.l(t('Create your free user'), 'user/register/private', array('attributes' => array('class' => 'linkbutton'))).'</div>';
+	$result .= '</div><div style="clear: both;"></div></div><div class="lv-box"><div class="usertype-image"><img src="/sites/all/themes/zenlager/images/registerBusiness.gif" /></div><div class="usertype-content"><h3>'.t('Business/sole trader').'</h3><p>'.t("If you're in the business of buying and selling bulk lots, or if you're a retailer/wholesaler looking to clear out some of your stock or make a bargain on some new products, choose this user type. You can even break up some of your bulk lots into single items and sell them to private users of !site_name for an extra profit.", array('!site_name' => variable_get('site_name', ''))).'</p>';
+    $result .= '<div class="usertype-button">'.l(t('Read more'), 'user/register/info', array('attributes' => array('class' => 'linkbutton'))).'</div>';
+    $result .= '</div><div style="clear: both;"></div></div></div>';
+
+	return $result;    
+
+}
+
+
+/**
+ * Implementation of hook_form_alter()
+ */
+function lv_profiles_form_alter(&$form, $form_state, $form_id) {
+  switch ($form_id) {
+    case 'user_register':	
+		$form['simplenews']['simplenews-44']['#description'] = t("RECOMMENDED! Receive notification about important changes and new features on @sitename. We'll only send this out, when there's important news, so don't miss out on this. You can always unsubscribe by editing your user settings.", array('@sitename' => variable_get('site_name', '')));
+   		$path = explode('/', $_GET['q']);
+        if ($path[2] == 'private') {
+			$form['profile_business'] = $form['Account']['profile_business'];
+            $form['profile_business']['#type'] = 'value';
+	        $form['profile_business']['#value'] = 'lv_private';
+			unset($form['Account']['profile_business']);
+			unset($form['Account']['profile_vat_id']);
+			unset($form['Account']['profile_vat_registered']);            
+			unset($form['Butiksindstillinger']);            
+        } else {
+//			$form['account']['name']['#description'] .= t(' <strong>The username may not contain contact information or website addresses!</strong>');
+			unset($form['Account']['profile_business']['#description']);
+			unset($form['Account']['profile_vat_id']['#description']);
+            $form['Account']['profile_vat_registered']['#description'] = t("Check this box if you're VAT registered. The system will automatically add VAT to your sale items.").t(' This choice can be changed later in your account settings.');
+        }
+		unset($form['Account']['profile_firstname']['#description']);
+		unset($form['Account']['profile_lastname']['#description']);
+		$form['Account']['#weight'] = 0;        
+		$form['Account']['#title'] = t('Personal details');        
+        
+        break;
+	case 'user_profile_form':      
+		drupal_set_title(t('Edit details'));
+	
+		if (isset($form['#uid'])) {
+			unset($form['Account']['profile_firstname']['#description']);
+			unset($form['Account']['profile_lastname']['#description']);
+			$form['Account']['#weight'] = 0;        
+			$form['Account']['#title'] = t('Personal details');        
+
+			$account = user_load($form['#uid']);
+			if (!in_array('handlende', $account->roles)) {
+				unset($form['Account']['profile_business']);
+				unset($form['Account']['profile_vat_id']);
+				unset($form['Account']['profile_vat_registered']);                
+			} else {       
+				unset($form['Account']['profile_business']['#description']);
+				unset($form['Account']['profile_vat_id']['#description']);
+				$form['Account']['profile_vat_registered']['#description'] = t("Check this box if you're VAT registered. The system will automatically add VAT to your sale items.");                
+			}
+		}
+		
+		$form['user_relationships_ui_privatemsg_settings']['#weight'] = 3;
+		$form['signature_settings']['#weight'] = 1;           
+		$form['advanced_blog_settings']['#weight'] = 2;  				 
+		
+		unset($form['contact']);
+	}    
+    
+    
+} 
+
+
+
+/**
+ * Implementation of hook_user()
+ */
+function lv_profiles_user($op, &$edit, &$account, $category = NULL) {
+	switch ($op) {
+		case 'update':
+        	if ($account->logintoboggan_email_validated == TRUE) {
+            	if (!db_result(db_query('SELECT * FROM {users_roles} WHERE uid = %d AND (rid = 8 OR rid = 10)', $account->uid))) {
+
+					if ($account->profile_business == 'lv_private') {
+						$rid = 10;
+	                    db_query("UPDATE {profile_values} SET value = '' WHERE fid = 28 AND uid = %d", $account->uid);                         
+        	        } else {
+                        $rid = 8;
+						if (!node_load(array('type' => 'profile', 'uid' => $account->uid))) {
+							$node = new StdClass();
+							$node->type = 'profile';
+							$node->status = 1;    
+                            $node->uid = $account->uid;
+                            $node->name = $account->name;
+							$node->title = $account->name;
+							$node->body = '';
+							node_save($node);
+                        }
+            	    }
+                    db_query('INSERT INTO {users_roles} (uid, rid) VALUES (%d, %d)', $account->uid, $rid); 
+				} 
+			}
+			break;            
+		case 'load':            
+            if ($nid = db_result(db_query("SELECT * FROM {node} WHERE uid = %d AND status = 1 AND type = 'profile'", $account->uid))) {				        
+				$account->profile_path = 'node/'.$nid;						        
+			}        
+        	break;
+    }
+}          
+
+
+function lv_profiles_get_address($account = 0) {
+	if ($address = db_fetch_array(db_query("SELECT a.street, a.additional, a.city, a.postal_code, a.phone, a.province, a.country, c.country_id FROM {uc_countries} c LEFT JOIN {addresses_user} a ON (LOWER(c.country_iso_code_2) = a.country) WHERE a.eid = %d ORDER BY a.is_primary DESC", $account->uid))) {
+            profile_load_profile($account);
+            $address['firstname'] = $account->profile_firstname;					
+            $address['lastname'] = $account->profile_firstname;
+            $address['business'] = $account->profile_business;
+            $address['vat_id'] = $account->profile_vat_id;                                    
+            
+            return $address;
+    }
+    else {
+		return FALSE;    
+    }
+}	  
+

@@ -1,0 +1,2657 @@
+<?php
+// $Id$
+
+/**
+* @file
+* Module to hold my customizations to Ubercart
+*/
+
+
+
+/**
+* Implementation of hook_menu()
+*/      
+function uc_custom_menu() {
+	return array(
+		'lagersalg/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, 'lagersalg', 'consumer', 1),
+		    'access arguments' => array('access content'),
+		),       
+		'lagersalg/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, 'lagersalg', 'consumer', 1),
+		    'access arguments' => array('access content'),
+		),
+       
+                        
+		'lagersalg/%lv_term' => array(
+        	'type' => MENU_CALLBACK,        
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, 'lagersalg', 'consumer'),
+		    'access arguments' => array('access content'),
+		),              
+		'lagersalg/%lv_term/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, 'lagersalg', 'consumer', 2),
+		    'access arguments' => array('access content'),
+		),       
+		'lagersalg/%lv_term/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, 'lagersalg', 'consumer', 2),
+		    'access arguments' => array('access content'),
+		),
+        
+		'lagersalg/%lv_term/%' => array(
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, 'lagersalg', 'consumer'),
+   			'load arguments' => array(2),            
+		    'access arguments' => array('access content'),
+		),
+		'lagersalg/%lv_term/%/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, 'lagersalg', 'consumer', 3),
+   			'load arguments' => array(2),                        
+		    'access arguments' => array('access content'),
+		),       
+		'lagersalg/%lv_term/%/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, 'lagersalg', 'consumer', 3),
+   			'load arguments' => array(2),                        
+		    'access arguments' => array('access content'),
+		),   
+
+		'varepartier/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, '', 'vareparti', 1),
+		    'access arguments' => array('access content'),
+		),       
+		'varepartier/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', NULL, '', 'vareparti', 1),
+		    'access arguments' => array('access content'),
+		),        
+		'varepartier/%lv_term/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, '', 'vareparti', 2),
+		    'access arguments' => array('access content'),
+		),       
+		'varepartier/%lv_term/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, '', 'vareparti', 2),
+		    'access arguments' => array('access content'),
+		),        
+
+		'varepartier/%lv_term/%/auktioner' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, '', 'vareparti', 3),
+   			'load arguments' => array(2),                        
+		    'access arguments' => array('access content'),
+		),       
+		'varepartier/%lv_term/%/prisforhandling' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'theme',
+			'page arguments' => array('uc_catalog_browse', 1, '', 'vareparti', 3),
+   			'load arguments' => array(2),                        
+		    'access arguments' => array('access content'),
+		),
+
+
+
+        
+        'kostemus' => array( 
+        	'type' => MENU_CALLBACK,
+			'page callback' => 'uc_custom_testpage',
+		    'access arguments' => array('access content'),
+		),
+                
+
+	);
+
+
+}  
+
+
+function uc_custom_testpage() {
+
+
+$node = node_load(6824);
+
+dprint_r($node);
+
+return '';
+}    
+
+
+function lv_term_load($main_cat, $sub_cat = '') {
+	if ($sub_cat != '') { $main_cat .= '/' . $sub_cat; }
+	if ($result = db_result(db_query("SELECT src FROM {url_alias} WHERE dst = 'varepartier/%s'", check_plain($main_cat)))) {
+   		$catalog_url = explode('/', $result);
+        return $catalog_url[1];
+    } else {
+    	return FALSE;
+    }
+}
+
+function lv_term_get_path($term, $path = '') {
+	if ($path == '' || $path == 'catalog') {
+	  return 'catalog/'.$term->tid;
+	}
+    else { 
+		if ($result = db_result(db_query("SELECT dst FROM {url_alias} WHERE src = 'catalog/%d'", $term->tid))) {
+   			$url = explode('/', $result);
+			$url[0] = $path;
+            return implode('/', $url);
+	    } else {                     
+    		return FALSE;
+	    }	
+	}        
+}
+
+
+/**
+ * Implementation of hook_cron(). 
+ */
+function uc_custom_cron() {
+
+ global $user;
+ 
+ 	$last_notified = variable_get('product_expiry_check', 0);
+ 	$now = time();
+	
+	// If more than 1 day ago since last notification
+	if ($last_notified + 86400 < $now) { 
+		$file = drupal_get_path('module', 'uc_custom') .'/templates/expiry-mail.itpl.php';
+	
+	    ob_start();
+	    require($file);
+	    $template = ob_get_contents();
+	    ob_end_clean();
+
+		// Get users with products changed more than 27 days ago
+		$rs = db_query("SELECT uid, COUNT(nid) AS tallet FROM {node} WHERE (type = 'vareparti' OR type = 'consumer') AND status = 1 AND changed+2332800 < UNIX_TIMESTAMP() GROUP BY uid");
+		while ($query = db_fetch_array($rs)) {
+			uc_custom_expiry_notification($query['uid'], $template);	  
+		}
+	
+		variable_set('product_expiry_check', $now);	
+	}
+
+}   
+
+
+/**
+ * Handles e-mail notifications. Mostly about products getting too old, etc. 
+ */
+function uc_custom_expiry_notification($uid, $output) {
+	
+	$now = time();
+	
+	// Get all products that are past the first time of notification (in this case 27 days (2332800 seconds))
+	$expiring = array();
+	$expired = array();
+	$db_expire = array();
+	
+	$hasitems = false;
+	$rs = db_query("SELECT n.nid, n.type, n.changed, (SELECT Count(*) FROM {uc_auction} WHERE nid = n.nid) AS auction, (SELECT Count(*) FROM {uc_bartering_bids} WHERE nid = n.nid AND status = 0) AS bartering FROM {node} n WHERE n.uid = %d AND (n.type = 'vareparti' OR n.type = 'consumer') AND n.status = 1 AND n.changed+2332800 < UNIX_TIMESTAMP()", $uid);
+	while ($row = db_fetch_array($rs)) {
+		// If change date is more than one month ago, put nid in expired array, else put in expiring
+		// Don't expire the product if an auction is running or there are open bartering bids on the product		
+		if ($row['bartering'] == 0 && $row['auction'] == 0) {
+			if ($row['changed'] + 2592000 < $now) {
+				$hasitems = true;
+				$expired[$row['type']][] = $row['nid'];
+				$db_expire[] = $row['nid'];
+			} else {
+				$hasitems = true;
+				$expiring[$row['type']][] = $row['nid'];
+			}
+		}
+	}	
+
+	if ($hasitems) {	
+
+	// Make the expired products in-active. We don't use the nodeapi, because this would trigger the changed date to be reset, which would defeat the purpose of using that date to check freshness of item
+	if (count($db_expire)) db_query("UPDATE {node} SET status = 0 WHERE nid IN (%s)", implode(',', $db_expire));
+
+	 	$user = user_load($uid);
+		$links = '';
+		if ($user->mimemail_textonly) {	
+		    $output = t("Please renew your listings on Lagervarer.dk\n\nIn order for us to ensure our users, that the listings they find on Lagervarer.dk are current and that listed lots are still available, we ask all our sellers to update each listing at least once a month.\n\nPlease follow these links to quickly verify your listed items, and update the ones that are still for sale:\n[[LINKS]]\n\nTo receive a detailed list of new products in these search agent e-mails, please enable HTML e-mail in your user settings:\n!email-url\n\n\nKind regards\n\n[site-name]\n[site-url]", array('!email-url' => url('user/'.$query['uid'].'/edit', array('absolute' => TRUE))));
+			$links .= t('Manage your BULK LOTS:\n') . url('user/' . $uid . '/varepartier', array('html' => true, 'absolute' => true, 'query' => 'order=updated&sort=asc')); 
+			if (count($expiring['consumer']) || count($expired['consumer'])) {
+				$links .= t('Manage your RETAIL ITEMS:\n') . url('user/' . $uid . '/lagersalg', array('html' => true, 'absolute' => true, 'query' => 'order=updated&sort=asc'));
+			}
+		}
+		else {
+			$links = '<BR><BR><h2>' . t('Manage your listings here') . '</h2><ul><li>' . l(t('View your <b>Bulk Lots</b> ordered by expiry date'), 'user/' . $uid . '/varepartier', array('html' => true, 'absolute' => true, 'query' => 'order=updated&sort=asc')) . '</a></li>';
+			if (count($expiring['consumer']) || count($expired['consumer'])) {
+				$links .= '<li>' . l(t('View your <b>Retail Items</b> ordered by expiry date'), 'user/' . $uid . '/lagersalg', array('html' => true, 'absolute' => true, 'query' => 'order=updated&sort=asc')) . '</a></li>';
+			}
+			$links .= '</ul><BR><BR>';
+			$products_html = '';
+			if (count($expiring)) {
+				$products_html .= '<h2>' . t('Expiring Items') . '</h2>';
+				if (count($expiring['vareparti'])) {
+					if (count($expiring['vareparti']) > 10) {
+						$products_html .= '<h3>' . t('Bulk Lots (Showing <strong>10</strong> of <strong>!total</strong> expiring lots)', count($expiring['vareparti'])) . '</h3>' . lv_search_product_table(array_slice($expiring['vareparti'], 0, 10));
+					} else {
+						$products_html .= '<h3>' . t('Bulk Lots') . '</h3>' . lv_search_product_table($expiring['vareparti']);
+					}			
+				}	
+				if (count($expiring['consumer'])) {
+					if (count($expiring['consumer']) > 10) {
+						$products_html .= '<h3>' . t('Retail Items (Showing <strong>10</strong> of <strong>!total</strong> expiring items)', count($expiring['consumer'])) . '</h3>' . lv_search_product_table(array_slice($expiring['consumer'], 0, 10));
+					} else {
+						$products_html .= '<h3>' . t('Retail Items') . '</h3>' . lv_search_product_table($expiring['consumer']);
+					}			
+				}				
+			}
+			if (count($expired)) {
+				$products_html .= '<h2>' . t('These Items Expired Today') . '</h2>';
+				if (count($expired['vareparti'])) {
+					if (count($expired['vareparti']) > 10) {
+						$products_html .= '<h3>' . t('Bulk Lots (Showing <strong>10</strong> of <strong>!total</strong> lots that expired today)', count($expired['vareparti'])) . '</h3>' . lv_search_product_table(array_slice($expired['vareparti'], 0, 10));
+					} else {
+						$products_html .= '<h3>' . t('Bulk Lots') . '</h3>' . lv_search_product_table($expired['vareparti']);
+					}			
+				}	
+				if (count($expired['consumer'])) {
+					if (count($expired['consumer']) > 10) {
+						$products_html .= '<h3>' . t('Retail Items (Showing <strong>10</strong> of <strong>!total</strong> items that expired today)', count($expired['consumer'])) . '</h3>' . lv_search_product_table(array_slice($expired['consumer'], 0, 10));
+					} else {
+						$products_html .= '<h3>' . t('Retail Items') . '</h3>' . lv_search_product_table($expired['consumer']);
+					}			
+				}
+			}
+		
+			$output = str_replace('[[PRODUCTTABLE]]', $products_html, $output);
+			$output = str_replace('[[LINKS]]', $links, $output);
+		}	
+		
+	 	drupal_mail('uc_custom', 'expiry-notification', $user->mail, user_preferred_language($user), array('user' => $user, 'mailbody' => $output));
+
+	}
+
+}
+
+
+/**
+ * Implementation of hook_mail().
+ */
+function uc_custom_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'seller-confirmation':
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+      $message['subject'] = t("You've made a sale");
+      $message['from'] = uc_store_email_from();
+      $message['body'][] = uc_order_load_invoice($params['order'], 'checkout-mail', 'seller');
+      break;
+    case 'auction-invoice':
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+      $message['subject'] = t('You won an auction at !sitename', array('!sitename' => variable_get('site_name', 'Lagervarer.dk')));
+      $message['from'] = uc_store_email_from();
+      $message['body'][] = uc_order_load_invoice($params['order'], 'checkout-mail', 'customer');
+      break;  
+	  
+	case 'expiry-notification':
+	      $message['subject'] = t('Please verify that your products are still for sale');
+	      $message['from'] = variable_get('uc_store_email', 'info@lagervarer.dk');
+	
+		  if (!$params['user']->mimemail_textonly) {
+		      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+		  }	
+		  $message['body'][] = $params['mailbody'];		
+	     
+		break;
+    case 'uc_custom_stock_zero': case 'uc_custom_stock_warning':  
+		$message['body'] = token_replace_multiple(
+			uc_get_message($key.'_msg'),
+			array('global' => NULL, 'node' => $params['node'], 'stock' => $params['stock'])
+		);
+		$message['subject'] = token_replace_multiple(
+			uc_get_message($key.'_subj'),
+			array('global' => NULL, 'node' => $params['node'], 'stock' => $params['stock'])
+		);    
+		break;                                                 
+	case 'uc_custom_auction_bought':
+		$message['body'] = token_replace_multiple(
+			uc_get_message($key.'_msg'),
+			array('global' => NULL, 'node' => $params['node'], 'user' => $params['user'])
+		);            
+		$message['subject'] = token_replace_multiple(
+			uc_get_message($key.'_subj'),
+			array('global' => NULL, 'node' => $params['node'], 'user' => $params['user'])
+		);  
+        break;        
+	case 'uc_custom_pm_notify':   
+		$message['body'] = token_replace_multiple(
+			uc_get_message($key.'_msg'),
+			array('global' => NULL, 'user' => $params['user'], 'message' => $params['message'])
+		);         
+		$message['subject'] = token_replace_multiple(
+			uc_get_message($key.'_subj'),
+			array('global' => NULL, 'user' => $params['user'], 'message' => $params['message'])
+		);  
+        break;        
+        
+/*    case 'testmail':
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+      $message['subject'] = t("Dette er en test æg ål øl");
+      $message['from'] = 'kontakt@lagervarer.dk';
+      $message['body'][] = 'Dette er en test. æg øl ål. ørne, æsler, åge.';
+      break;*/
+  }
+
+}                  
+                     
+
+
+
+
+
+/**
+ * Implementation of hook_mail_alter().
+ */
+function uc_custom_mail_alter(&$message) {           
+	if ($message['id'] == 'user_register_no_approval_required' && strpos($message['body'][0], '/user/reset/')) {
+
+		$variables = user_mail_tokens($message['params']['account'], $message['language']);
+		$variables['!login_url'] = variable_get('user_register', 1) == 1 ? logintoboggan_eml_validate_url($message['params']['account']) : NULL;
+	    $message['body'][0] = strtr(variable_get('user_mail_register_no_approval_required_body', _user_mail_text('register_no_approval_required_body')), $variables);
+
+    }
+    
+	if (strstr($message['headers']['Content-Type'], 'text/plain')) {
+		$message['headers']['Content-Type'] = str_replace('charset=UTF-8', 'charset=ISO-8859-1', $message['headers']['Content-Type']);
+
+		if (is_array($message['body'])) { 
+     		foreach (array_keys($message['body']) as $item) {
+				$message['body'][$item] = utf8_decode($message['body'][$item]); 
+	        }
+    	} else {
+			$message['body'] = utf8_decode($message['body']);
+		}              
+	}
+} 
+
+
+
+/**
+ * Implementation of hook_theme().
+ */
+function uc_custom_theme($existing, $type, $theme, $path) {
+	return array(
+		'uc_custom_auction_bid_table' => array(
+			'arguments' => array('form' => NULL),
+		),
+        'uc_custom_buy_it_now_table' => array(
+        	'arguments' => array('form' => NULL),
+        ),
+        'uc_custom_add_to_cart' => array(
+        	'arguments' => array('form' => NULL),
+        ),
+        'uc_custom_cart_review_table' => array(
+        	'arguments' => array('show_subtotal' => TRUE, 'show_vat' => TRUE, 'show_total' => TRUE),
+		),    
+		'uc_custom_product_admin' => array(
+			'arguments' => array('form' => NULL),
+		),		                
+	);
+}       
+
+    
+/**
+ * Implementation of hook_theme_registry_alter().
+ */
+function uc_custom_theme_registry_alter(&$theme_registry) {
+	$theme_registry['uc_catalog_browse']['arguments'][] = array('lv_type' => NULL);
+}
+        
+
+
+/**
+ * Implementation of hook_token_values (a Token hook).
+ */
+function uc_custom_token_values($type, $object = NULL) {
+	if ($type === 'order') {
+		$product = array_shift($object->products);
+        $node = node_load($product->nid);
+        $seller = user_load($node->uid);
+        profile_load_profile($seller);
+
+		if ($address = db_fetch_array(db_query("SELECT a.street, a.additional, a.city, a.postal_code, a.phone, a.province, c.country_id FROM {uc_countries} c LEFT JOIN {addresses_user} a ON (LOWER(c.country_iso_code_2) = a.country) WHERE a.eid = %d ORDER BY a.is_primary DESC", $seller->uid))) {        
+			$result = array(
+				'order-seller-profile-link' => l(t("Click here to view the seller's profile"), $seller->profile_path, array('absolute' => TRUE)),
+				'order-seller-username' => $seller->name,
+    	    	'order-seller-address' => uc_address_format($seller->profile_firstname, $seller->profile_lastname, $seller->profile_business, $address['street'], $address['additional'], $address['city'], $address['province'], $address['postal_code'], $address['country_id']),
+        	    'order-seller-phone' => $address['phone'],
+            	'order-seller-email' => $seller->mail,
+                'order-seller-firstname' => $seller->profile_firstname, 
+                'order-seller-full-name' => trim($seller->profile_firstname . ' ' . $seller->profile_lastname),
+			);
+			$result['order-seller-vat-id'] = $seller->profile_vat_id ? t('VAT ID: ').$seller->profile_vat_id : '';              
+			$result['order-seller-company'] = $seller->profile_business ? $seller->profile_business : '';                          
+
+			return $result;
+		}          
+	}
+  	elseif ($type === 'message') {
+		$result = array(
+            'message-subject' => $object['subject'],
+            'message-author-name' => $object['author_name'],
+            'message-content' => $object['body'],      
+            'message-link' => url('messages/view/' . $object['thread_id'], array('absolute' => TRUE)),
+        );  
+        
+        return $result;  
+    }
+}  
+
+
+
+
+
+/**
+* Implementation of hook_form_alter()
+*/
+function uc_custom_form_alter(&$form, $form_state, $form_id) {
+	if ($form_id == 'vareparti_node_form' || $form_id == 'consumer_node_form') {
+		if (!$form['#node']->status) {
+			drupal_set_message(t('<strong>This product is not active!</strong> The product will not be shown to site users. Check the "Active"-checkbox in the bottom of this form, when you wish to activate the product.'), 'warning');        
+        }
+
+    	drupal_add_js(drupal_get_path('module', 'uc_custom').'/uc_custom.js');    
+
+		$breadcrumb = array(l(t('Home'), ''), l(t('Account'), 'user/'.$form['uid']['#value']));
+
+        $qty_instruction = '';
+		if ($form_id == 'consumer_node_form') {
+			$typenames = array(t('item'), t('items'), t('the item'), t('this item'));
+            $breadcrumb[] = l(t('Warehouse Sale'), 'user/'.$form['uid']['#value'].'/lagersalg');
+        } else {
+			$typenames = array(t('bulk lot'), t('bulk lots'), t('the bulk lot'), t('this bulk lot'));        
+            $breadcrumb[] = l(t('Bulk Lots'), 'user/'.$form['uid']['#value'].'/varepartier');
+        }                    
+        
+        drupal_set_breadcrumb($breadcrumb);
+
+	 	array_splice($form['#validate'], 1, 0, array('uc_custom_product_validate'));
+
+        $form['author']['#weight'] = -20;
+
+		unset($form['shipping']);
+		if (!user_access('send out newsletters')) unset($form['options']);
+		unset($form['friendlist_access']);        
+		unset($form['revision_information']);        
+		unset($form['comment_settings']);                
+        
+        $form['comment'] = array(
+        	'#type' => 'value',
+            '#value' => 2,
+		);            
+
+	    unset($form['body_field']['teaser_js']);
+	    unset($form['body_field']['teaser_include']);        
+    
+		unset($form['base']['model']);
+		unset($form['base']['ordering']); 
+
+
+       	$form['instruction'] = array(
+          	'#type' => 'fieldset',
+            '#title' => t('Instructions - IMPORTANT, PLEASE READ!'),
+            '#weight' => -50,                    
+            '#collapsible' => TRUE,
+		);            
+
+    	$form['base']['sell_price'] = $form['base']['prices']['sell_price'];
+		$form['base']['sell_price']['#weight'] = -15;        
+
+		$sell_price = $form['base']['sell_price']['#default_value'];
+		$consumer_sell_price = $form['#node']->consumer_sell_price;
+        
+		$account = user_load($form['uid']['#value']);
+        if (!account) { 
+			global $user;
+        	$account = $user; 
+        }
+        profile_load_profile($account);
+
+		$vat_instruction = '';
+        if ($account->profile_vat_registered) {
+			if ($form_id == 'consumer_node_form') {         	
+                $sell_price = $sell_price * 1.25;
+                $consumer_sell_price = $consumer_sell_price * 1.25;
+                $vat_instruction = t(' <strong>including VAT</strong>');
+			} else {          
+                $vat_instruction = t(' <strong>excluding VAT</strong>');
+                $vat_instruction_consumer = t(' <strong>including VAT</strong>');				            
+            }                
+        }              
+        
+		if ($form_id == 'vareparti_node_form') {
+
+			$form['instruction']['#collapsed'] = db_query("SELECT COUNT(*) FROM {node} WHERE type = 'vareparti' AND uid = %d", array($account->uid));         
+            $form['instruction']['guidelines'] = array(
+				'#type' => 'item',
+				'#value' => uc_custom_product_instructions(),
+			);
+    
+	        $form['base']['default_qty']['#title'] = t('Minimum purchase qty');
+    	    $form['base']['default_qty']['#description'] = t('Specify the miminum qty users must buy at a time. Minimum is 5 pcs.');        
+        	$form['base']['default_qty']['#default_value'] = $form['#node']->default_qty ? $form['#node']->default_qty : 5;        
+	        $form['base']['default_qty']['#weight'] = 7;
+        
+    	    $form['base']['pkg_qty']['#title'] = t('Number of items in this lot');
+        	$form['base']['pkg_qty']['#description'] = t('Specify the number of single products in this combined lot.');        
+	        $form['base']['pkg_qty']['#default_value'] = $form['#node']->pkg_qty ? $form['#node']->pkg_qty : 1;                
+    	    $form['base']['pkg_qty']['#weight'] = 7;
+
+			if ($form['field_price_per_piece']['#default_value'][0]['value']) {
+		        $form['base']['bartering']['is_multiple']['#default_value'] = TRUE;
+	    	    $form['base']['bartering']['is_multiple']['#disabled'] = TRUE;            
+			} else {
+				$form['field_price_per_piece']['#default_value'][0]['value'] = 0;        
+        	}           
+             
+			$form['base']['field_price_per_piece'] = $form['field_price_per_piece'];
+    	    unset($form['field_price_per_piece']);
+        
+	        $form['delivery']['dimensions'] = $form['base']['dimensions'];   
+                
+				$prefix = variable_get('uc_currency_sign', '$'); 
+
+            	$form['base']['private_child'] = array(
+                	'#type' => 'fieldset',
+                    '#title' => t('Sell as retail item'),
+                    '#weight' => 40,                    
+                    '#collapsible' => TRUE,
+                    '#collapsed' => TRUE,
+					'copy_this' => array(                                    
+    	            	'#type' => 'checkbox',
+        	            '#title' => t('Sell this lot piece by piece to consumers.'),
+                        '#description' => t('Makes the items in this bulk lot available for purchase as single items in the consumer section. This option saves you the time of creating first a bulk lot and then a single item listing for the same products.'),
+                        '#default_value' => $form['#node']->copy_this,
+					),
+	                'consumer_sell_price' => array(
+    	            	'#type' => 'textfield',
+        	            '#title' => t('Consumer sale price'),
+            	        '#description' => t('Customer purchase price!vat_instruction.', array('!vat_instruction' => $vat_instruction_consumer)),
+                	    '#field_prefix' => $prefix,
+						'#size' => 12,    
+                        '#default_value' => str_replace('.', '', uc_currency_format($consumer_sell_price, FALSE)),                                
+					),                    
+	                'consumer_list_price' => array(
+    	            	'#type' => 'textfield',
+        	            '#title' => t('List price'),
+            	        '#description' => t('The normal price or list price for this item !vat_instruction.', array('!vat_instruction' => $vat_instruction)),
+                	    '#field_prefix' => $prefix,
+						'#size' => 12,                                    
+                        '#default_value' => str_replace('.', '', uc_currency_format($form['#node']->consumer_list_price, FALSE)),                                                        
+					),
+	                'consumer_description' => array(
+    	            	'#type' => 'textarea',
+        	            '#title' => t('Description'),
+            	        '#description' => t('Product description for private consumers'),
+						'#rows' => 4,                                    
+                        '#default_value' => $form['#node']->consumer_description,                                                        
+					),
+					'consumer_bartering' => array(
+						'#type' => 'checkbox',
+						'#title' => t('Make this product available for bargaining.'),
+						'#description' => t('Allow private consumers to bid on the product. Leave the "Consumer sale price" field at 0 to prevent a fixed price from being displayed.'),
+						'#default_value' => $form['#node']->consumer_bartering,
+						'#weight' => 0,
+					),               
+				);
+        } 
+        else {
+
+			$form['instruction']['#collapsed'] = db_query("SELECT COUNT(*) FROM {node} WHERE type = 'consumer' AND uid = %d", array($account->uid));         
+            $form['instruction']['guidelines'] = array(
+				'#type' => 'item',
+				'#value' => uc_custom_product_instructions('consumer'),
+			);        
+
+			if ($form['#node']->partner_product) {
+				$form['dependency'] = array(
+        			'#type' => 'fieldset',
+		            '#title' => t('Product is linked to a bulk lot'),
+        		    '#collapsible' => TRUE,
+		            '#collapsed' => FALSE,
+		            '#weight' => -45,                    
+					'copy_info' => array(
+						'#type' => 'item',
+						'#value' => t('This sale item is managed through a bulk lot. <a href="@url" target="_blank">Click here to view the bulk lot in a new window</a>. Future changes to the bulk lot will automatically override any changes made through this form.', array('@url' => url('node/'.$form['#node']->partner_product))),
+						'#weight' => -5,
+					),             
+					'copy_remove' => array(
+						'#type' => 'checkbox',
+						'#title' => t('Remove the link between this sale item and the bulk lot.'),
+						'#description' => t('If you check this field and click the "Save" button, changes to the bulk lot will no longer affect this warehouse sale item.'),
+						'#default_value' => FALSE,
+						'#weight' => 0,
+					),             
+        		);								            
+            
+            
+            
+            }        
+        
+        
+			unset($form['base']['default_qty']);                    
+    	    unset($form['base']['pkg_qty']);			                                                                                                                                                                              
+        
+	        $form['default_qty'] = array(
+    	    	'#type' => 'value',
+        	    '#value' => 1,
+	        ); 
+
+	    	$form['base']['list_price'] = $form['base']['prices']['list_price'];       
+	        $form['base']['list_price']['#default_value'] = str_replace('.', '', uc_currency_format($form['base']['list_price']['#default_value'], FALSE));            
+        } 
+        unset($form['base']['prices']);                 
+        
+        $form['base']['auction']['is_auction']['#title'] = t('Put @typename up for auction', array('@typename' => $typenames[3]));                    
+        $form['base']['auction']['is_auction']['#description'] = t('<strong>IMPORTANT:</strong> When someone has made the first bid on the auction, you cannot change this sale item or stop the auction before it ends.');                            
+        $form['base']['auction']['expiry']['#title'] = t('Expiry date and time');                            
+		$form['base']['auction']['is_now'] = array(
+			'#type' => 'checkbox',
+			'#title' => t('"Buy now" functionality enabled for @typename.', array('@typename' => $typenames[3])),
+			'#description' => t('Customers can buy @typename for the standard price without placing a bid. If more than 1 item is in stock, the auction will continue.', array('@typename' => $typenames[2])),
+			'#default_value' => (isset($form['#node']->uc_auction) && $form['#node']->uc_auction['buy_now']) || (!isset($form['#node']->nid) && variable_get('uc_auction_now_new_default', FALSE)),
+			'#weight' => 15,
+		);
+
+        $form['base']['bartering']['is_bartering']['#title'] = t('Enable bargaining for @typename.', array('@typename' => $typenames[3]));                                                    
+        $form['base']['bartering']['is_multiple']['#description'] = t('Check this box to allow customers to place a bid for more than one piece of the product/lot. If a stock level is set for the product/lot, this will be the maximum quantity a customer can bid on. If not, the customer can bid on an unlimited quantity of the product/lot.');                                                            
+
+        $form['base']['sell_price']['#default_value'] = str_replace('.', '', uc_currency_format($sell_price, FALSE));
+        $form['base']['sell_price']['#description'] = t('Customer purchase price!vat_instruction. If you enable bargaining, you can leave this field empty to prevent a fixed price from being displayed to the customers.', array('!vat_instruction' => $vat_instruction));
+	    $form['base']['#title'] = t('Sale method'); 
+                    
+        
+		$form['delivery'] = array(
+        	'#type' => 'fieldset',
+            '#title' => t('Delivery options'),
+            '#collapsible' => TRUE,
+            '#collapsed' => FALSE,
+        );
+
+        $form['delivery']['field_delivery'] = $form['field_delivery'];
+        $form['delivery']['shippable'] = $form['base']['shippable'];
+        $form['delivery']['weight'] = $form['base']['weight'];        
+        $form['delivery']['field_delivery_details'] = $form['field_delivery_details'];        
+        unset($form['field_delivery']);                 
+        unset($form['base']['shippable']);                       
+        unset($form['base']['weight']);                       
+        unset($form['base']['dimensions']);
+        unset($form['field_delivery_details']);
+
+		$form['body_field']['body']['#description'] = t("Description of the item for sale. Website addresses will be converted to links automatically. The more details you provide about the product, the greater chance of a sale. If possible, include a link to the product on the manufacturer's website.").'<br /><br />';
+        $form['body_field']['format'][2]['#description'] = '';
+        unset($form['body_field']['format'][9]);                               
+
+        $form['stock_management'] = array (
+        	'#type' => 'fieldset',
+            '#title' => t('Stock management'),
+			'#collapsible' => TRUE,
+            '#collapsed' => FALSE,
+			'use_stock' => array(
+            	'#type' => 'checkbox',
+                '#title' => t('Use stock management for @typename', array('@typename' => $typenames[3])),
+                '#description' => t('Customers can only buy as many of @typename as you have available. When the stock level reaches 0, the item will be removed from the site until you increase the stock level again.', array('@typename' => $typenames[3])),
+                '#default_value' => isset($form['#node']->use_stock) ? $form['#node']->use_stock : TRUE,
+                '#weight' => -5,
+            ),
+            'stock_level' => array(
+            	'#type' => 'textfield',                          
+                '#title' => t('Available quantity'),                                               
+                '#size' => 10,
+                '#weight' => 0,
+                '#maxlength' => 7,
+                '#weight' => 0,                                                                                                         
+                '#description' => t('The number of products/lots available for purchase.'),                               
+                '#default_value' => isset($form['#node']->stock_level) ? $form['#node']->stock_level : 1,
+            ),
+            'threshold' => array(
+            	'#type' => 'textfield',                
+                '#title' => t('Warning level'),                               
+                '#size' => 10,
+                '#maxlength' => 7,
+                '#weight' => 5, 
+                '#description' => t('When the stock level reaches this level, you will receive an e-mail notification.'),               
+                '#default_value' => isset($form['#node']->threshold) ? $form['#node']->threshold : 0,
+			),
+        );
+
+        if (!$form['nid']['#value']) {      
+			unset($form['buttons']['save_continue']);        
+        } 
+
+		// Auction modifications
+        if (isset($form['#node']->uc_auction) && intval($form['#node']->uc_auction['bid_count']) > 0) {
+        	$form['base']['auction']['is_auction_dummy'] = $form['base']['auction']['is_auction'];
+			$form['base']['auction']['is_auction_dummy']['#description'] = t('A customer has placed a bid on the auction, and therefore you cannot change or remove the auction before it finishes.');        			
+			$form['base']['auction']['is_auction_dummy']['#disabled'] = TRUE;        
+			$form['base']['auction']['is_auction']['#type'] = 'value';                    
+			$form['base']['auction']['expiry']['#type'] = 'textfield';
+			$form['base']['auction']['expiry']['#disabled'] = TRUE;            
+			$form['base']['auction']['min_increase']['#disabled'] = TRUE;  
+            unset($form['#validate'][array_search('uc_auction_form_validate', $form['#validate'])]);         
+        }
+
+
+		// Make the category select display nice optgroups for the main categories and selectable sub-categories.
+        $tree = taxonomy_get_tree(4);
+		$options = array(0 => t('Please choose ...'));
+		if ($tree) {
+		    foreach ($tree as $term) {
+				if ($term->parents[0] == 0) {
+					$options[$term->name] = array();
+                    $children = taxonomy_get_children($term->tid);
+                    foreach ($children as $child) {
+						$options[$term->name][$child->tid] = $child->name;                    
+                    }
+                }
+		    }
+
+		$form['taxonomy'][4]['#options'] = $options;
+      	}                    
+        $form['taxonomy'][4]['#title'] = t('Pick a category');	   
+        
+		$form['is_active'] = array(
+			'#type' => 'checkbox',
+			'#title' => t('Product is active', array('@typename' => $typenames[3])),
+			'#description' => t('Uncheck this field to hide the product from users.'),
+			'#default_value' => $form['#node']->status,
+			'#weight' => 50,
+		);        
+        
+                 
+	}
+    elseif ($form_id == 'uc_auction_bid_table_form') {                                  
+    	$form['#theme'] = 'uc_custom_auction_bid_table';
+    }
+    elseif (strstr($form_id, 'uc_product_add_to_cart_form')) {                                  
+    	$form['#theme'] = 'uc_custom_add_to_cart';
+        $form['#validate'][] = 'uc_custom_add_to_cart_validate';
+
+	    if ($form['#parameters'][2]->use_stock && $form['#parameters'][2]->stock_level == 1) {
+			$form['qty']['#type'] = 'value';			        
+        }
+    
+    }
+    elseif ($form_id == 'comment_form') {                                  
+        unset($form['homepage']);
+
+		$node = node_load($form['nid']['#value']);
+		if ($node->type == 'forum') {
+            $form['comment_filter']['comment']['#title'] = t('Your reply');   
+            $form['notify']['#title'] = t('Send me an e-mail when someone replies to this thread');
+        }
+/*        elseif (uc_product_is_product($node)) {
+			$form['comment_filter']['comment']['#description'] = t('<strong>NOTE:</strong> It is not allowed to disclose any form of contact information, mention other marketplaces, or in any way to suggest a transaction including this sale item outside of this website. Violation of these rules can lead to termination of your account.');
+		}    */
+    }
+    elseif ($form_id == 'uc_cart_view_form') {    
+		$form['#validate'][] = 'uc_custom_add_cart_view_validate';    
+    	drupal_set_message('<strong>VIGTIGT:</strong> Du kan kun købe fra een sælger ad gangen. Hvis du har varer i kurven og tilføjer nye varer fra en anden sælger, vil kurven blive tømt først. Vi arbejder på at lave dette om!', 'warning');
+          $subtotal=$vat=0;
+          foreach (element_children($form['items']) as $i) {
+            $subtotal += $form['items'][$i]['#total'];
+			$node = node_load($form['items'][$i]['nid']['#value']);
+			if ($node->add_vat) {            
+	            $vat += $form['items'][$i]['#total'] * 0.25;
+			}                
+          }       
+
+          foreach ($form['items'] as $key => $item) {
+            if (isset($item['desc']['#cell_attributes'])) {
+            	unset($form['items'][$key]['desc']['#cell_attributes']['width']);
+            }
+			if (isset($item['total']['#cell_attributes']) && count($item) == 1) {
+	          	$form['items'][$key]['qty'] = array(
+    	        	'#value' => t('Subtotal:'),
+        	        '#cell_attributes' => array('colspan' => '4', 'align' => 'right', 'nowrap' => 'nowrap', 'class' => 'cart-label'),
+				);
+	          	$form['items'][$key]['total'] = array(
+    	        	'#value' => uc_currency_format($subtotal),
+        	        '#cell_attributes' => array('align' => 'right', 'nowrap' => 'nowrap', 'class' => 'cart-amount'),
+				);
+            }		              
+          }
+          $form['items'][] = array(
+          	'qty' => array(
+            	'#value' => t('VAT:'),
+                '#cell_attributes' => array('colspan' => '4', 'align' => 'right', 'nowrap' => 'nowrap', 'class' => 'cart-label'),
+			),
+          	'total' => array(
+            	'#value' => uc_currency_format($vat),
+                '#cell_attributes' => array('align' => 'right', 'nowrap' => 'nowrap', 'class' => 'cart-amount'),
+			),            
+		  ); 
+          $form['items'][] = array(
+          	'qty' => array(
+            	'#value' => t('Total:'),
+                '#cell_attributes' => array('colspan' => '4', 'align' => 'right', 'nowrap' => 'nowrap', 'class' => 'cart-label'),
+			),
+          	'total' => array(
+            	'#value' => uc_currency_format($subtotal+$vat),
+                '#cell_attributes' => array('align' => 'right', 'nowrap' => 'nowrap', 'class' => 'cart-amount'),
+			),            
+		  );                                                         
+    }  
+    elseif ($form_id == 'uc_cart_checkout_form') {
+		global $user;
+	    unset($form['panes']['cart']);        
+        
+        if ($user->uid) {
+
+			if (isset($form['panes']['delivery'])) {
+               	$pane = 'delivery';
+            } else {
+               	$pane = 'billing';
+            }
+            
+            profile_load_profile($user);
+
+            $form['panes'][$pane][$pane.'_first_name']['#value'] = $user->profile_firstname;
+            $form['panes'][$pane][$pane.'_last_name']['#value'] = $user->profile_lastname;
+            $form['panes'][$pane][$pane.'_company']['#value'] = $user->profile_business;                
+
+			if ($address = db_fetch_array(db_query("SELECT a.street, a.additional, a.city, a.postal_code, a.phone, a.province, c.country_id FROM {uc_countries} c LEFT JOIN {addresses_user} a ON (LOWER(c.country_iso_code_2) = a.country) WHERE a.eid = %d ORDER BY a.is_primary DESC", $user->uid))) {
+				$form['panes'][$pane][$pane.'_street1']['#value'] = $address['street'];
+				$form['panes'][$pane][$pane.'_street2']['#value'] = $address['additional'];
+				$form['panes'][$pane][$pane.'_city']['#value'] = $address['city'];
+				$form['panes'][$pane][$pane.'_postal_code']['#value'] = $address['postal_code'];                
+				$form['panes'][$pane][$pane.'_phone']['#value'] = $address['phone'];                                
+				$form['panes'][$pane][$pane.'_zone']['#value'] = $address['province'];                         
+				$form['panes'][$pane][$pane.'_country']['#default_value'] = $address['country_id'];
+            }
+            
+
+            unset($form['panes']['gtct']);                
+        }
+        else {
+			$form['panes']['gtct']['gtct']['agree']['#options']['gtct'] = 'Jeg accepterer de <a target="_blank" href="/information/handelsbetingelser">generelle handelsbetingelser</a> for køb gennem Lagervarer.dk.';			        
+        }
+    }
+/*    elseif ($form_id == 'privatemsg_new') {
+    	$form['privatemsg']['body']['#description'] = t('<strong>NOTE:</strong> It is not allowed to mention other marketplaces, disclose any contact information, or in any way to suggest a transaction of items advertised on this website outside of this website. Violation of these rules can lead to termination of your account.');
+    }*/
+
+
+} 
+
+
+function uc_custom_add_cart_view_validate($form, &$form_state) {
+	foreach($form_state['values']['items'] as $key => $value) {
+		$node = node_load($value['nid']);
+        if ($node->default_qty > $value['qty']) {
+			form_set_error('items['.$key.'][qty]', t('The minimum order quantity of <strong>!item</strong> is <strong>!number</strong> piece(s).', array('!item' => $node->title, '!number' => $node->default_qty)));			        
+        }
+        elseif ($node->use_stock && $node->stock_level < $value['qty']) {
+			form_set_error('items['.$key.'][qty]', t('The maximum available quantity of <strong>!item</strong> is <strong>!number</strong> piece(s).', array('!item' => $node->title, '!number' => $node->stock_level)));			                
+        }    
+    }
+}
+
+
+function uc_custom_product_validate($form, &$form_state) {
+   // Remove the price format error set by the default uc_product_form_validate function that we can't prevent from being executed
+	$errors = form_get_errors();                                                   
+	if (count($errors)) {
+	    form_set_error(NULL, '', True);    
+	    unset($_SESSION['messages']['error']);	                                       
+		foreach (array_keys($errors) as $key) {
+			if ($key != 'list_price' && $key != 'sell_price') {
+				form_set_error($key, $errors[$key]);
+	        }
+		}
+	}
+    
+    if ($form_state['values']['taxonomy'][4] == 0) {
+		form_set_error('taxonomy[4]', t('You must select a category for this sale item.'));		        
+    }
+    
+
+  if ($form_state['clicked_button']['#id'] == 'edit-delete') {
+	if (db_result(db_query('SELECT COUNT(*) FROM {uc_auction_bids} WHERE nid = %d', $form_state['values']['nid']))) {
+		form_set_error('is_auction', t('An auction with bids is currently running. You cannot delete this item before the auction ends.'));		    
+    }
+  }   
+
+  
+  $pattern = '/^\d*(,\d{0,2})?$/';
+  $price_error = t('Price must be in a valid number format. No thousands separator and only one decimal point.');
+  
+  if ($form_state['values']['copy_this']) {		
+	  if (!is_numeric($form_state['values']['consumer_list_price']) && !preg_match($pattern, $form_state['values']['consumer_list_price'])) {
+    	form_set_error('consumer_list_price', $price_error);
+	  }  
+	  elseif (!is_numeric($form_state['values']['consumer_sell_price']) && !preg_match($pattern, $form_state['values']['consumer_sell_price'])) {
+    	form_set_error('consumer_sell_price', $price_error);
+	  }   
+      else {
+		$form_state['values']['consumer_list_price'] = str_replace(',', '.', $form_state['values']['consumer_list_price']); 
+		$form_state['values']['consumer_sell_price'] = str_replace(',', '.', $form_state['values']['consumer_sell_price']);   
+      }    
+  }  
+  
+  if (!is_numeric($form_state['values']['list_price']) && !preg_match($pattern, $form_state['values']['list_price'])) {
+    form_set_error('list_price', $price_error);
+  }   
+  if (!is_numeric($form_state['values']['sell_price']) && !preg_match($pattern, $form_state['values']['sell_price'])) {
+    form_set_error('sell_price', $price_error);
+  } 
+  else {
+  	if ($form_state['values']['sell_price'] == 0 && $form_state['values']['is_auction'] && $form_state['values']['is_now']) {
+	    form_set_error('sell_price', t('If the product is on auction and the "Buy now"-function is enabled, the product price must be higher than 0.'));    
+    }
+  	elseif ($form_state['values']['sell_price'] == 0 && !$form_state['values']['is_auction'] && !$form_state['values']['is_bartering']) {
+	    form_set_error('sell_price', t("If you don't enable bargaining or auction, you have to set a price of more than 0 for the product, or it will be free."));    
+    }
+    else {    
+		$form_state['values']['list_price'] = str_replace(',', '.', $form_state['values']['list_price']); 
+		$form_state['values']['sell_price'] = str_replace(',', '.', $form_state['values']['sell_price']);   
+		// Til at rette bel�bet fra inkl. moms til ekskl. Det m�ske bare for besv�rligt i l�ngden?!
+    	if ($form_state['values']['form_id'] == 'consumer_node_form') {
+			$account = user_load($form_state['values']['uid']);
+	        profile_load_profile($account);
+    	    if ($account->profile_vat_registered) {
+				$form_state['values']['sell_price'] = $form_state['values']['sell_price'] / 1.25;
+			}            
+    	}  
+	}
+  }
+  
+  $form_state['values']['status'] = $form_state['values']['is_active'];
+  
+//  if ($form_state['values']['is_auction']) {  
+  if (!empty($form_state['values']['start_price']) && !preg_match($pattern, $form_state['values']['start_price'])) {
+   	form_set_error('start_price', $price_error);
+  }  
+  if (!empty($form_state['values']['min_increase']) && !preg_match($pattern, $form_state['values']['min_increase'])) {
+   	form_set_error('min_increase', $price_error);                                                                                                                             
+  }    
+//  }      
+               
+  foreach (array('weight', 'length', 'width', 'height') as $property) {
+    if (!empty($form_state['values'][$property]) && (!is_numeric($form_state['values'][$property]) || $form_state['values'][$property] < 0)) {
+      form_set_error($property, t('@property must be a positive number. No commas and only one decimal point.', array('@property' => ucfirst($property))));
+    }
+  }            
+  
+  if ($form_state['values']['default_qty']) {
+    if (!is_numeric($form_state['values']['default_qty'])) {
+      form_set_error('default_qty', t('Quantities should be numeric.'));
+    }
+    elseif ($form_state['values']['default_qty'] < 0) {
+      form_set_error('default_qty', t("You have typed in a negative product quantity."));
+    }
+  }
+  
+  if ($form_state['values']['pkg_qty']) {
+    if (!is_numeric($form_state['values']['pkg_qty'])) {
+      form_set_error('pkg_qty', t('Quantities should be numeric.'));
+    }
+    elseif ($form_state['values']['pkg_qty'] < 0) {
+      form_set_error('pkg_qty', t("You have typed in a negative product quantity."));
+    }
+  }  
+  
+  if ($form_state['values']['field_price_per_piece'][0]['value'] && $form_state['values']['is_auction']) {
+	form_set_error('is_auction', t("You cannot put single items up for auction as bulk lots. Select <i>Price is for the whole bulk lot</i> above or put single items up for auction under <i>Single item</i>."));  
+  }
+
+  if ($form_state['values']['field_price_per_piece'][0]['value'] && (int)$form_state['values']['default_qty'] < 5) {
+	  form_set_error('default_qty', t("For bulk lots the minimum purchase quantity must be more than 5. If you have less than 5 pcs. of the item availabe, specify a combined price for the whole lot instead of per piece."));	  
+  }
+  elseif ($form_state['values']['use_stock'] && $form_state['values']['stock_level'] < $form_state['values']['default_qty']) {
+	  form_set_error('stock_level', t("You have less items in stock than the minimum purchase quantity."));
+  }
+
+  if ($form_state['values']['field_price_per_piece'][0]['value'] && $form_state['values']['is_bartering']) {
+	$form_state['values']['is_multiple'] = TRUE;
+  }
+
+
+}     
+ 
+
+function uc_custom_add_to_cart_validate($form, &$form_state) {
+  $node = node_load($form_state['values']['nid']);
+
+  if (intval($form_state['values']['qty']) < intval($node->default_qty)) {    
+	form_set_error('qty', t('You must order at least !number pieces of this item.', array('!number' => $node->default_qty)));
+  }
+  elseif ($node->use_stock && intval($form_state['values']['qty']) > intval($node->stock_level)) {    
+	form_set_error('qty', t('The quantity is too high. You can maximum buy !number pcs. of this item.', array('!number' => $node->stock_level)));
+  }
+}
+
+
+
+/** 
+ * Implementation of hook_order().
+ */
+function uc_custom_order($op, &$arg1, $arg2) {
+	switch ($op) {
+	case 'update':
+		if ($arg1->order_status == 'in_checkout' && $arg2 == 'pending') {
+	        $seller = user_load($arg1->seller);
+    	    $account = user_load($arg1->uid);
+			profile_load_profile($account);
+           
+	        if (!(strlen($account->profile_firstname) > 0)) {
+    	    	$fields = array(
+					'profile_firstname' => $arg1->billing_first_name,
+	   				'profile_lastname' => $arg1->billing_last_name,
+	   				'profile_business' => 'lv_private',
+				);
+    	        profile_save_profile($fields, $account, 'Account');            
+        	    
+		       	if (!db_result(db_query('SELECT * FROM {users_roles} WHERE uid = %d AND rid = 12', $account->uid))) {
+		    	    db_query('INSERT INTO {users_roles} (uid, rid) VALUES (%d, 12)', $account->uid); 
+				}              
+			} 
+
+			if (!db_result(db_query('SELECT aid FROM {addresses_user} WHERE eid = %d', $account->uid))) {
+				$country = strtolower(db_result(db_query('SELECT country_iso_code_2 FROM {uc_countries} WHERE country_id = %d', $arg1->billing_country)));
+        	     
+				$fields = array(
+	            	'eid' => $account->uid,
+    	            'street' => $arg1->billing_street1,
+        	        'additional' => $arg1->billing_street2,
+            	    'city' => $arg1->billing_city,
+	                'province' => $arg1->billing_zone,
+    	            'country' => $country ? $country : 'dk',
+        	        'postal_code' => $arg1->billing_postal_code,
+            	    'is_primary' => FALSE,
+					'phone' => $arg1->billing_phone,
+				);                                
+    	    	drupal_write_record('addresses_user', $fields);
+        	}       
+            
+            foreach ($arg1->products as $product) {
+				uc_custom_stock_change($product->nid, -($product->qty));
+            }
+    	
+			drupal_mail('uc_custom', 'seller-confirmation', $seller->mail, user_preferred_language($seller), array('order' => $arg1));        		    
+    	}	
+        break;
+	}        
+}  
+
+function uc_custom_stock_change($nid, $change = 0, $check_partner = TRUE) {
+	$node = node_load($nid);
+    $seller = user_load($node->uid);
+
+	if ($node->use_stock) { 
+        if ($node->is_bartering) {
+			uc_bartering_stock_change($node->nid, $change);        
+        }  
+            
+		$node->stock_level = (int)$node->stock_level + $change;
+		if ($node->stock_level < 0) { $node->stock_level = 0; }        
+
+    	$stock = new StdClass;
+		$stock->stock = $node->stock_level;
+        $stock->sku = $node->sku;
+        $stock->threshold = $node->threshold;
+
+        if ($node->stock_level == 0) {
+			drupal_mail('uc_custom', 'uc_custom_stock_zero', $seller->mail, user_preferred_language($seller), array('node' => $node, 'stock' => $stock));        		    						        
+            $node->status = FALSE;
+            
+            if (isset($node->uc_auction) && $node->uc_auction['expiry'] > time()) {
+				if ($bidder = user_load($node->uc_auction['high_bid_uid'])) { 
+					drupal_mail('uc_custom', 'uc_custom_auction_bought', $bidder->mail, user_preferred_language($bidder), array('node' => $node, 'user' => $bidder));        		    						        					
+                }
+
+				db_query('DELETE FROM {uc_auction} WHERE nid = %d', $node->nid);
+				db_query('DELETE FROM {uc_auction_bids} WHERE nid = %d', $node->nid); 
+				db_query('DELETE FROM {uc_auction_now} WHERE nid = %d', $node->nid);                
+            }
+        }   
+        elseif ($node->stock_level <= $node->threshold) {   
+			drupal_mail('uc_custom', 'uc_custom_stock_warning', $seller->mail, user_preferred_language($seller), array('node' => $node, 'stock' => $stock));        		    						        			        
+        } 
+    } 
+    
+    node_save($node);      
+
+    if ($check_partner && $partner = node_load($node->partner_product)) {
+        if ($partner->use_stock) {
+	        if ($partner->type == 'vareparti') {
+				if ($partner->field_price_per_piece[0]['value']) {        
+					uc_custom_stock_change($partner->nid, $change, FALSE);        
+				}
+                else {
+					$partner->pkg_qty = (int)$partner->pkg_qty + $change;
+                    if ($partner->pkg_qty <= 0) { 
+                    	$partner->pkg_qty = 1;
+						drupal_mail('uc_custom', 'uc_custom_stock_zero', $seller->mail, user_preferred_language($seller), array('node' => $partner));        		    						        
+			            $partner->status = FALSE;                    
+                    }
+                    node_save($partner);                
+                }        
+    	    }
+        	else {
+				if (!$node->field_price_per_piece[0]['value']) {                   
+                	$change = -(abs($change) * $node->pkg_qty);
+                }
+				uc_custom_stock_change($partner->nid, $change, FALSE);        					                
+	        }   
+		}            
+    }
+}
+
+
+/**
+* Implementation of hook_uc_message()
+*/
+function uc_custom_uc_message() {
+ 	return array(
+    	'uc_custom_stock_zero_subj' => t('One of your sale items has been sold out!'),
+    	'uc_custom_stock_zero_msg' => t("Dear [author-name]\n\nYour sale item \"[title]\" has been sold out.\n\nThe sale item has been made inactive, which means that it will not show up in the catalogue on [site-name]. Increase the stock level or disable stock management for the sale item to make it show up on the site again. You can access the sale item from your list of products under \"My Account\".\n\nFollow this link to go directly to the edit page for the sale item:\n[site-url]/node/[nid]/edit\n\n\nKind regards\n\n[site-name]\n[site-url]"),
+    	'uc_custom_stock_warning_subj' => t('One of your sale items is low on stock!'),
+    	'uc_custom_stock_warning_msg' => t("Dear [author-name]\n\nThere are only [stock-level] pcs. left of your sale item \"[title]\".\n\nFollow this link to go directly to the edit page for the sale item:\n[site-url]/node/[nid]/edit\n\n\nKind regards\n\n[site-name]\n[site-url]"),
+    	'uc_custom_auction_bought_subj' => t('The auction you were winning has been cancelled!'),
+    	'uc_custom_auction_bought_msg' => t("Dear [user]\n\nThe auction of \"[title]\" in which you were the highest bidder has been cancelled, because the auctioned item was sold through the \"Buy Now\" feature.\n\nThank you for bidding on products through [site-name].\n\n\nKind regards\n\n[site-name]\n[site-url]"),
+    	'uc_custom_pm_notify_subj' => t('You have a new private message on [site-name]'),
+    	'uc_custom_pm_notify_msg' => t("Dear [user]\n\n[message-author-name] has sent you a private message on [site-name] with the following content:\n\n\"[message-content]\"\n\nTo reply to the message, click on this link:\n[message-link]\n\n\n\nKind regards\n\n[site-name]\n[site-url]"),
+    );  
+}   
+
+
+/**
+ * Implementation of hook_token_values (a Token hook).
+ */
+/*function uc_custom_token_values($type, $object = NULL) {
+	if ($type === 'lv_product') {                  
+		$seller = user_load($object->uid);    
+    	return array (
+			'stock-level' => $object->,
+			'node-name' => url('node/' . $object->nid . '/bids', array('absolute' => TRUE)),
+			'bartering-product-name' => $object->title,                                       
+        );
+	}        
+} */                                 
+
+
+/**
+ * Implementation of hook_add_to_cart().
+ */
+function uc_custom_add_to_cart(&$nid, $qty, $data) {
+  $items = uc_cart_get_contents(uc_cart_get_id());    
+  $node_exist = node_load($items[0]->nid);
+  $node_new = node_load($nid);
+  if ($node_exist->uid != $node_new->uid) {
+	uc_cart_empty(uc_cart_get_id());
+  }	    
+}
+
+
+
+/**
+ * Theme the add to cart form.
+ *
+ * @param $form
+ *   The form to theme.
+ * @returr
+ *   The themed form.
+ */
+function theme_uc_custom_add_to_cart($form) {
+	unset($form['qty']['#title']);
+	$datarow = drupal_render($form['submit']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']);
+    
+    $price_t = t('Price');
+	$qty_t = t('Quantity');    
+	if ($form['#parameters'][2]->type == 'vareparti') {    
+	    if ($form['#parameters'][2]->field_price_per_piece[0]['value']) {
+			$price_t = t('Price per item');
+			$qty_t = t('Item qty');                    
+    	} elseif (!$form['#parameters'][2]->use_stock || (int)$form['#parameters'][2]->stock_level > 1) {
+			$price_t = t('Price per lot');            
+			$qty_t = t('Qty of lots');                
+	    }
+	}
+    
+    $rows = array();
+    if ($form['#parameters'][2]->type == 'consumer' && floatval($form['#parameters'][2]->list_price) > 0) {
+			$rows[] = array( // tr
+				array( // th
+					'header' => TRUE,
+					'data' => t('List price'),
+					'class' => 'uc-auction-buy-now-list-price-hdr',
+				),
+				array( // td
+					'data' => uc_currency_format($form['#parameters'][2]->list_price),
+					'class' => 'uc-auction-buy-now-list-price',
+				),                                                               
+				array( // td
+					'data' => '',
+					'class' => 'price-comment',
+				),              
+			);
+    }
+    
+	$rows[] = array( // tr
+				array( // th
+					'header' => TRUE,
+					'data' => $price_t,
+					'class' => 'uc-auction-buy-now-price-hdr',
+				),
+				array( // td
+					'data' => uc_currency_format($form['#parameters'][2]->display_price),
+					'class' => 'uc-auction-buy-now-price display_price',
+				),                                                               
+				array( // td
+					'data' => $form['#parameters'][2]->vat_info,
+					'class' => 'price-comment',
+				),              
+	
+	);
+
+	  if ($form['qty']['#type'] != 'value') {
+	  	if ($form['#parameters'][2]->use_stock && $form['#parameters'][2]->stock_level > 1) {      
+        	$qty_comment = t('Maximum <strong>!number</strong> items.', array('!number' => $form['#parameters'][2]->stock_level));
+        }
+		$rows[] = array( // tr
+				array( // th
+					'header' => TRUE,
+					'data' => $qty_t,
+					'class' => 'uc-auction-qty-hdr',
+				),
+				array( // td
+					'data' => drupal_render($form['qty']),
+					'class' => 'uc-auction-qty',
+				),
+				array( // td
+					'data' => $qty_comment,
+					'class' => 'qty-comment',
+				),                
+		);   
+	} else {
+		$datarow .= drupal_render($form['qty']);    
+    }
+
+	$rows[] = array( // tr
+			array( // th
+				'header' => TRUE,
+				'data' => '',
+				'class' => 'uc-auction-buy-now-hdr',
+			),
+			array( // td
+				'data' => $datarow,
+				'class' => 'uc-auction-buy-now',
+			),    
+			array( // td
+				'data' => '',
+				'class' => '',
+			),              
+	);
+	return theme('table', array(), $rows, array('class' => 'uc-auction-bid-table'));		 	
+
+}     
+
+
+
+/**
+ * Theme the bid table.
+ *
+ * @param $form
+ *   The form to theme.
+ * @returr
+ *   The themed form.
+ */
+function theme_uc_custom_auction_bid_table($form) {
+	// This will all make sense in a minute.
+	$sp_t = $form['start_price']['#title'];
+	unset($form['start_price']['#title']);
+	$bc_t = $form['bid_count']['#title'];
+	unset($form['bid_count']['#title']);
+	$hb_t = $form['high_bid']['#title'];
+	unset($form['high_bid']['#title']);
+	$ex_t = $form['expiry']['#title'];
+	unset($form['expiry']['#title']);
+	if (isset($form['user_bid'])) {
+		$ub_t = $form['user_bid']['#title'];
+		unset($form['user_bid']['#title']);
+	}
+	$rows = array(
+		array( // tr
+			array( // th
+				'header' => TRUE,
+				'data' => $hb_t,
+				'class' => 'uc-auction-high-bid-hdr',
+			),
+			array( // td
+				'data' => drupal_render($form['high_bid']),
+				'class' => 'uc-auction-high-bid display_price',
+			),  
+			array(
+               	'data' => $form['#parameters'][2]->vat_info,
+                'class' => 'price-comment',
+            ),               
+		),
+		array( // tr
+			array( // th
+				'header' => TRUE,
+				'data' => $bc_t,
+				'class' => 'uc-auction-bid-count-hdr',
+			),
+			array( // td
+				'data' => drupal_render($form['bid_count']),
+				'class' => 'uc-auction-bid-count',
+			),
+            array(),
+		),
+		array( // tr
+			array( // th
+				'header' => TRUE,
+				'data' => $ex_t,
+				'class' => 'uc-auction-expiry-hdr',
+			),
+			array( // td
+				'data' => drupal_render($form['expiry']),
+				'class' => count($form['expiry']['#attributes']) ? 'uc-auction-expiry ' . implode(' ', $form['expiry']['#attributes']) : 'uc-auction-expiry',
+			),
+            array(),
+		),
+	);
+	if (isset($form['user_bid'])) {
+		$rows[] = array( // tr
+			array( // th
+				'header' => TRUE,
+				'data' => t('Your !link', array('!link' => l(t('max bid'), 'node/6840', array('attributes' => array('target' => '_blank'))))),
+				'class' => 'uc-auction-user-bid-hdr',
+			),
+			array( // td
+				'data' => drupal_render($form['user_bid']),
+				'class' => 'uc-auction-user-bid',
+			),
+ 			array(
+               	'data' => $form['#parameters'][2]->vat_info,
+                'class' => 'price-comment',
+            ),               
+		);
+		$rows[] = array( // tr
+			array( // th
+				'header' => TRUE,
+				'data' => '',
+				'class' => 'uc-auction-user-submit-hdr',
+			),
+			array( // td
+				'data' => drupal_render($form['submit']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']),
+				'class' => 'uc-auction-user-bid-submit',
+			),
+            array(),
+		);
+		$rows[] = array( // tr
+			array( // td
+				'data' => $form['submit']['#description'],
+				'class' => 'uc-auction-user-bid-submit',
+				'colspan' => 3,
+			),
+		);        
+	}
+	elseif (isset($form['cant_bid'])) {
+		$rows[] = array( // tr
+			array( // td
+				'data' => drupal_render($form['cant_bid']),
+				'class' => 'uc-auction-user-bid-submit',
+				'colspan' => 3,
+			),
+		);
+	}
+	return theme('table', array(), $rows, array('class' => 'uc-auction-bid-table'));
+}
+
+
+
+
+
+/**
+* Implementation of hook_validate()
+*/
+/*function uc_custom_validate($node, &$form) {  
+	if ($node->type == 'vareparti') {
+		if($form['values']['threshold'] > $form['values']['stock']) {
+		  form_set_error('threshold', t('The notification level cannot be '));
+        }
+    }
+} */        
+
+
+
+
+
+function uc_custom_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+	if ($node->type == 'vareparti' || $node->type == 'consumer') {
+		switch ($op) {
+		case 'insert': 
+        	if ($node->use_stock) {
+				$record = array(
+    	        	'sku' => $node->uid . '-' . $node->nid, 
+        	        'nid' => $node->nid,
+            	    'active' => TRUE,
+	                'stock' => $node->stock_level,
+    	            'threshold' => $node->threshold,
+				);
+				drupal_write_record('uc_product_stock', $record);                            
+            }
+			if ($node->is_now) {
+				db_query('INSERT INTO {uc_auction_now} (nid, bought_now) VALUES (%d, 0)', $node->nid);
+			}                
+            
+            $record = array('nid' => $node->nid, 'model' => $node->uid.'-'.$node->nid);
+    		drupal_write_record('uc_products', $record, 'nid');
+            
+			if ($node->type == 'vareparti' && $node->copy_this) {
+				uc_custom_copy_vareparti($node);                                  
+			}                    
+			break;
+        case 'update':
+        // TODO: Make pair consumer items updatable
+        	$sku = $node->sku ? $node->sku : $node->uid . '-' . $node->nid;
+			$record = array(
+   	        	'sku' => $sku, 
+       	        'nid' => $node->nid,
+           	    'active' => $node->use_stock,
+               	'stock' => $node->stock_level,
+                'threshold' => $node->threshold,
+			);
+        	if (!db_result(db_query('SELECT nid FROM {uc_product_stock} WHERE nid = %d', $node->nid)) && $node->use_stock) {
+				drupal_write_record('uc_product_stock', $record);            
+			} else {
+				drupal_write_record('uc_product_stock', $record, 'sku');            								            
+            }    
+            
+			$current = db_fetch_array(db_query('SELECT ua.expiry, uan.nid AS bn FROM {uc_auction} ua LEFT JOIN {uc_auction_now} uan ON ua.nid = uan.nid WHERE ua.nid = %d', $node->nid));
+			if ($current['bn'] === NULL && $node->is_now) {
+				db_query('INSERT INTO {uc_auction_now} (nid, bought_now) VALUES (%d, 0)', $node->nid);
+			}
+			elseif ($current['bn'] && !$node->is_now && $current['expiry'] > time()) {
+				db_query('DELETE FROM {uc_auction_now} WHERE nid = %d', $node->nid);
+			}  
+            
+			if ($node->type == 'vareparti') {
+            	if ($node->copy_this) {
+					uc_custom_copy_vareparti($node);                                  
+				} else {
+					uc_custom_copy_vareparti($node, 'delete');                                                  
+                }                    
+			}
+            elseif ($node->copy_remove) {
+				uc_custom_copy_vareparti($node, 'detach');                                                              
+            }               
+                        
+			break;
+		case 'delete':            
+			db_query('DELETE FROM {uc_product_stock} WHERE sku = %d', $node->uid . '-' . $node->nid);				        
+			db_query('DELETE FROM {uc_auction_now} WHERE nid = %d', $node->nid);
+            
+			if ($node->type == 'vareparti') {
+				uc_custom_copy_vareparti($node, 'delete');                                  
+			} else {
+				uc_custom_copy_vareparti($node, 'detach');                                              
+            }            
+			break;
+		case 'view':
+			if ($node->type == 'consumer') {
+				$node->content['display_price']['#value'] = theme('uc_product_price', $node->display_price, 'display-price');
+				$node->content['sell_price']['#value'] = theme('uc_product_price', $node->display_price, 'sell-price');                
+    	    }    
+        	break;
+		case 'load':            
+			if ($result = db_fetch_array(db_query('SELECT sku, active, stock, threshold FROM {uc_product_stock} WHERE nid = %d', $node->nid))) {				        
+				$node->sku = $result['sku'];
+                $node->use_stock = $result['active'];
+                $node->stock_level = $result['stock'];
+                $node->threshold = $result['threshold'];
+			}
+            
+			if ($result = db_fetch_array(db_query('SELECT l.vareparti, l.consumer, p.nid, p.sell_price, p.list_price FROM {uc_products} p LEFT JOIN {lv_product_pairs} l ON p.nid = l.consumer WHERE vareparti = %d OR consumer = %d', $node->nid, $node->nid))) {				        
+				if ($node->type == 'vareparti') {
+                	$copy = node_load($result['nid']);
+					$node->partner_product = $result['consumer'];                
+					$node->copy_this = TRUE;
+                    $node->consumer_sell_price = $result['sell_price'];                
+                    $node->consumer_list_price = $result['list_price'];
+                    $node->consumer_description = $copy->body;
+                    $node->consumer_bartering = $copy->is_bartering;                
+                } else {
+					$node->partner_product = $result['vareparti'];                                
+                }
+			}
+
+			if (isset($node->uc_auction)) {            
+				$bn = db_fetch_array(db_query('SELECT bought_now FROM {uc_auction_now} WHERE nid = %d', $node->nid));
+				if ($bn) {
+					$node->uc_auction['buy_now'] = TRUE;
+					$node->uc_auction['bought_now'] = $bn['bought_now'] == 1;
+				}
+				else {
+					$node->uc_auction['buy_now'] = FALSE;
+					$node->uc_auction['bought_now'] = FALSE;
+				}
+				
+				// The highest bid amount should only be the next highest bid + the minimum increment value, so that you can make advance bids.
+				$node->uc_auction['high_bid_max'] = $node->uc_auction['high_bid_amt'];
+				if ($node->uc_auction['bid_count'] > 1 && $next_highest = db_result(db_query('SELECT amount FROM {uc_auction_bids} WHERE nid = %d AND bid <> %d ORDER BY amount DESC LIMIT 1', $node->nid, $node->uc_auction['high_bid']))) {
+					$node->uc_auction['high_bid_amt'] = $node->uc_auction['min_increase'] + $next_highest;
+				}
+				else if ($node->uc_auction['bid_count'] === 1) {
+					$node->uc_auction['high_bid_amt'] = $node->uc_auction['start_price'] + $node->uc_auction['min_increase'];
+				}
+				else {
+					$node->uc_auction['high_bid_amt'] = $node->uc_auction['start_price'];
+				}
+				if ($node->uc_auction['high_bid_amt'] > $node->uc_auction['high_bid_max']) $node->uc_auction['high_bid_amt'] = $node->uc_auction['high_bid_max'];
+				
+				$node->uc_auction['min_bid'] = $node->uc_auction['high_bid_amt'] + $node->uc_auction['min_increase'];
+				$node->uc_auction['max_inc'] = 0;
+				$node->uc_auction['max_inc_pctg'] = 0;
+				
+			}                
+
+			$account = user_load($node->uid);
+            profile_load_profile($account);
+            if ($account->profile_vat_registered) {
+               	$node->add_vat = TRUE;
+		    	if ($node->type == 'consumer') {
+		        	$node->vat_info = t('Inkl. moms');
+					$node->display_price = $node->sell_price * 1.25;
+				} else {
+		        	$node->vat_info = t('Ekskl. moms');              
+					$node->display_price = $node->sell_price;       
+                }                        
+			} else {                    
+               	$node->add_vat = FALSE;
+	        	$node->vat_info = t('Momsfrit');                
+				$node->display_price = $node->sell_price;
+            }                    
+			break;         
+        }                        
+	}        
+}       
+
+function uc_custom_copy_vareparti($node, $op = 'save') {
+	if ($op == 'save') {
+		if ($result = db_result(db_query('SELECT consumer FROM {lv_product_pairs} WHERE vareparti = %d', $node->nid))) {	            
+			$copy = node_load($result);
+        	$copy->title = $node->title;
+	        $copy->taxonomy = $node->taxonomy;
+    	    $copy->field_condition = $node->field_condition;
+        	$copy->field_image_cache = $node->field_image_cache;
+	        $copy->field_delivery = $node->field_delivery;
+    	    $copy->shippable = $node->shippable;
+        	$copy->use_stock = $node->use_stock;
+	        $copy->threshold = $node->threshold;
+    	    $copy->stock_level = $node->stock_level;
+            $copy->status = $node->status;
+		}
+    	else {
+			$copy = clone $node;
+			$copy->nid = NULL;  
+        	$copy->vid = NULL;
+    	   	$copy->type = 'consumer'; 
+	    	$copy->is_auction = NULL;
+   	    	$copy->pkg_qty = NULL;
+    	   	$copy->default_qty = 1;
+	        $insert = TRUE;                                
+    	}
+        
+		$account = user_load($copy->uid);
+    	profile_load_profile($account);
+		$copy->sell_price = $account->profile_vat_registered ? $node->consumer_sell_price / 1.25 : $node->consumer_sell_price;
+    	$copy->list_price = $node->consumer_list_price;                
+	    if ($node->consumer_description) { $copy->body = $node->consumer_description; }
+
+	   	$copy->is_bartering = $node->consumer_bartering;                
+    	$copy->is_multiple = $node->consumer_bartering ? $node->is_multiple : NULL;
+                
+	    if ($copy->use_stock && !$copy->field_price_per_piece[0]['value']) {
+    	   	$copy->stock_level = $node->pkg_qty;
+	    }
+    
+    	if ($node->shippable && $node->weight) {
+			$copy->weight = $node->weight / $node->pkg_qty;    
+	    }
+                                  
+        if (isset($copy->uc_auction)) {
+			drupal_set_message(t('Changes to this product were not saved in the warehouse sale listing, because an auction is currently running for the product under "Warehouse Sale".'), 'warning');            
+        } else {
+		    node_save($copy);	
+  		}                
+
+		if ($insert) {
+			db_query('INSERT INTO {lv_product_pairs} (vareparti, consumer) VALUES (%d, %d)', array($node->nid, $copy->nid));
+		}            
+		//	                $record = array('vareparti' => $node->nid, 'consumer' => $copy->nid);
+		//    	            drupal_write_record('lv_product_pairs', $record);
+	}
+    elseif ($op == 'delete') {
+		if ($result = db_result(db_query('SELECT consumer FROM {lv_product_pairs} WHERE vareparti = %d', $node->nid))) {	            
+			$copy = node_load($result);
+            if (isset($copy->uc_auction)) {
+				drupal_set_message(t('Deletion of this product as a warehouse sale item failed, because an auction is currently running for the product.'), 'warning');            
+            } else {
+				node_delete($result);        
+				db_query('DELETE FROM {lv_product_pairs} WHERE vareparti = %d OR consumer = %d', array($node->nid, $node->nid));                        
+			}                
+        }    
+    }
+    elseif ($op == 'detach') {
+		db_query('DELETE FROM {lv_product_pairs} WHERE vareparti = %d OR consumer = %d', array($node->nid, $node->nid));            		    
+    }
+} 
+
+
+// UC auction hook 'bid_alter'
+// Change the workings of UC Auction so that a beforehand max bids can be given, and if a bid is below the current (secret) max bid, the bid will be inserted, but not counted as high bid.
+function uc_custom_bid_alter($node, $bid_record) {
+	// Only react if the user bids less than the current secret high bid
+	if ($bid_record['amount'] < $node->uc_auction['high_bid_max'] + $node->uc_auction['min_increase']) {
+		$bid_record['amount'] = $bid_record['amount'] - $node->uc_auction['min_increase'];
+
+		drupal_write_record('uc_auction_bids', $bid_record);
+		drupal_set_message(t('Sorry! Another bidder has already placed a max bid that is greater than your bid of <strong>@bid</strong>. Try again with a higher bid to win the auction.', array('@bid' => uc_currency_format($bid_record['amount']))), 'warning');	
+		
+		return false;
+	}
+}
+
+function uc_custom_auc_expired($nid) {
+	$node = node_load($nid);
+     
+	if ($buyer = user_load($node->uc_auction['high_bid_uid'])) { 
+    	$order = uc_order_new($buyer->uid);  
+
+		$product = new StdClass;
+		$product->nid = $node->nid;
+    	$product->qty = 1;
+	    $product->changed = time();
+    	$product->data = array('module' => 'uc_product');
+	    $product->title = $node->title;
+    	$product->vid = $node->vid;
+	    $product->price = $node->uc_auction['high_bid_amt'];
+    	$product->module = 'uc_product';
+	    $product->model = $node->sku;
+
+    	if ($node->type == 'consumer' && $node->add_vat) {
+			$product->price = $product->price / 1.25;		    
+	    }
+
+	    $order->products[] = $product;            
+        
+	    profile_load_profile($buyer); 
+    	$order->billing_first_name = $buyer->profile_firstname;
+	    $order->billing_last_name = $buyer->profile_lastname;
+    	$order->billing_company = $buyer->profile_business;     
+
+		if ($address = db_fetch_array(db_query("SELECT a.street, a.additional, a.city, a.postal_code, a.phone, a.province, c.country_id FROM {uc_countries} c LEFT JOIN {addresses_user} a ON (LOWER(c.country_iso_code_2) = a.country) WHERE a.eid = %d ORDER BY a.is_primary DESC", $buyer->uid))) {
+			$order->billing_street1 = $address['street'];
+			$order->billing_street2 = $address['additional'];
+			$order->billing_city = $address['city'];
+			$order->billing_postal_code = $address['postal_code'];                
+			$order->billing_phone = $address['phone'];                                
+			$order->billing_zone = $address['province'];                         
+			$order->billing_country = $address['country_id'];
+        	
+			if (uc_order_is_shippable($order)) {
+			    $order->delivery_first_name = $buyer->profile_firstname;
+			    $order->delivery_last_name = $buyer->profile_lastname;
+			    $order->delivery_company = $buyer->profile_business;         
+
+				$order->delivery_street1 = $address['street'];
+				$order->delivery_street2 = $address['additional'];
+				$order->delivery_city = $address['city'];
+				$order->delivery_postal_code = $address['postal_code'];                
+				$order->delivery_phone = $address['phone'];                                
+				$order->delivery_zone = $address['province'];                         
+				$order->delivery_country = $address['country_id'];            
+		    }    
+    	}
+    
+	    uc_order_save($order);   
+		uc_order_update_status($order->order_id, uc_order_state_default('post_checkout'));   
+        $new_order = uc_order_load($order->order_id);
+		drupal_mail('uc_custom', 'auction-invoice', $buyer->mail, user_preferred_language($buyer), array('order' => $new_order));
+	}
+    
+	db_query('DELETE FROM {uc_auction} WHERE nid = %d', $node->nid);
+	db_query('DELETE FROM {uc_auction_bids} WHERE nid = %d', $node->nid);
+	db_query('DELETE FROM {uc_auction_now} WHERE nid = %d', $node->nid);    
+
+    if ((int)$node->sell_price == 0 && !$node->is_bartering) {
+		$node->status = FALSE;
+        node_save($node);    
+    }
+}
+
+
+/**
+ * Add VAT to the checkout form
+ */
+function uc_custom_checkout_pane() {
+  $panes[] = array(
+    'id' => 'uc_custom_cart',
+    'callback' => 'uc_custom_checkout_pane_cart',
+    'title' => t('Cart Contents'),
+    'desc' => t("Display the contents of a customer's shopping cart."),
+    'weight' => 1,
+    'process' => FALSE,
+    'collapsible' => FALSE,
+  );
+  $panes[] = array(
+    'id' => 'uc_custom_seller',
+    'callback' => 'uc_custom_checkout_pane_seller',
+    'title' => t('Seller and Delivery Details'),
+    'desc' => t("Display information about delivery."),
+    'weight' => 7,
+    'process' => FALSE,
+    'collapsible' => TRUE,
+  );  
+  return $panes;
+} 
+
+/**
+ * Add VAT to the checkout form
+ */
+function uc_custom_order_pane() {
+  $panes[] = array(
+    'id' => 'uc_custom_seller',
+    'callback' => 'uc_custom_order_pane_seller',
+    'title' => t('Seller Information'),
+	'class' => 'pos-left',
+    'weight' => -5,
+	'show' => array('view', 'edit', 'customer'),
+  );  
+  return $panes;
+}
+
+function uc_custom_checkout_pane_cart($op) {
+  switch ($op) {
+    case 'view':                  
+      $contents['uc_custom_cart_review_table'] = array(
+        '#value' => theme('uc_custom_cart_review_table'),
+        '#weight' => variable_get('uc_pane_cart_field_cart_weight', 2),
+      );
+      return array('contents' => $contents, 'next-button' => FALSE);
+  }
+}
+
+function uc_custom_checkout_pane_seller($op) {
+  switch ($op) {
+    case 'view':                  
+	  $items = uc_cart_get_contents();    
+	  $node = node_load($items[0]->nid);
+      $seller = user_load($node->uid);        
+      profile_load_profile($seller);
+      $result = '<table class="checkout-seller"><tr><th>' . t('Seller:') . '</th><td>' . l($seller->name, $seller->profile_path, array('attributes' => array('target' => '_blank'))) . '</td></tr>';
+	  $terms = '';  
+	  if (count($items) === 1) {
+        if ($node->field_delivery[0]['value']) {
+		  $terms = $node->field_delivery[0]['value'];        
+        }
+	    elseif ($seller->profile_delivery) {
+		  $terms = $seller->profile_delivery;
+	    }
+      }		
+	  else {
+          $all_has = TRUE;
+	      foreach ($items as $product) {
+			$node = node_load($product->nid);
+        	if ($node->field_delivery[0]['value']) {
+				$terms .= '<u>'.$node->title.'</u><br />'.$node->field_delivery[0]['value'].'<br /><br />';
+    	    }      
+            else {
+				$all_has = FALSE;            
+            }
+	      }                      
+          if (!$all_has) {
+				$terms = '<u>'.t('General terms').'</u><br />'.$seller->profile_delivery.'<br /><br />' . $terms;          
+          }
+	  }          
+	  $result .= $terms ? '<tr><th valign="top">'.t('Terms of delivery:').'</th><td>'. $terms .'</td></tr>' : '';                  
+	  $result .= '</table>';      
+              
+      $contents['uc_custom_seller_table'] = array(
+        '#value' => $result,
+        '#weight' => 2,
+      );
+      return array('contents' => $contents, 'next-button' => FALSE);
+  }
+} 
+
+
+function uc_custom_order_pane_seller($op, $arg1) {
+  switch ($op) {
+/*    case 'customer':
+      if (!uc_order_is_shippable($arg1)) {
+        return;
+      }*/
+    case 'customer': case 'view':
+	  $seller = user_load($arg1->seller);
+      $address = lv_profiles_get_address($seller);
+     
+      $output .= $address['business'] ? $address['business'] . '<br />' : $address['firstname'] . ' ' . $address['lastname'] . '<br />';
+      $output .= $address['vat_id'] ? t('VAT ID:') . ' ' . $address['vat_id'] . '<br />' : '';      
+      $output .= $address['street'] . '<br />';            
+      $output .= $address['additional'] ? $address['additional'] . '<br />' : '';            
+      $output .= $address['postcode'] . ' ' . $address['city'] . '<br />';                        
+      $output .= $address['province'] ? $address['province'] . '<br />' : '';
+	  $output .= $address['phone'] ? $address['phone'] . '<br />' : '';
+      
+	  if (variable_get('uc_order_capitalize_addresses', TRUE)) {
+	    $output = drupal_strtoupper($output);
+	  }    
+      return $output;
+  }
+}
+
+
+
+function theme_uc_custom_cart_review_table($show_subtotal = TRUE, $show_vat = TRUE, $show_total = TRUE) {
+//  drupal_add_css(drupal_get_path('module', 'uc_ukvat') .'/uc_ukvat.css');
+  $items = uc_cart_get_contents();
+
+  $subtotal = $vat = 0;
+
+  $output .= '<table class="cart-review"><thead>'
+           .'<tr class="first last odd"><td class="first odd qty">'. t('Qty')
+           .'</td><td class="even products">'. t('Products')
+           .'</td><td class="last odd price">'. t('Price')
+           .'</td></tr></thead><tbody>';
+
+  $row = 1;
+  for ($i = 0; $i < count($items); $i++) {
+    $item = $items[$i];
+    
+    $rows = array();
+	if (isset($item->options)) {
+	    foreach ($item->options as $option) {
+    	  // $rows[] = $option['attribute'] .': '. $option['name'];
+	      $rows[] = t('@attribute: @option', array('@attribute' => $option['attribute'], '@option' => $option['name']));
+    	}
+	}        
+
+    $desc = check_plain($item->title) . theme('item_list', $rows, NULL, 'ul', array('class' => 'product-options'));
+
+    $total = ($item->qty) ? $item->qty * $item->price : $item->price;
+    $subtotal += $total;
+
+    if ($show_vat) {
+		$node = node_load($item->nid);
+	    // calculate vat
+	    $vat += $node->add_vat ? $total * 0.25 : 0;
+    }
+    
+    $qty = ($item->qty) ? $item->qty : '';
+    $tr_class = ($i % 2 == 0) ? 'even' : 'odd';
+    if ($show_subtotal && $i == count($items)) {
+      $tr_class .= ' last';
+    }
+
+    $output .= '<tr class="'. $tr_class .'"><td class="qty">'
+             . t('!qtyx', array('!qty' => $qty)) .'</td><td class="products">'
+             . $desc .'</td><td class="price">'. uc_currency_format($total)
+              .'</td></tr>';
+  }
+  if ($show_subtotal) {
+    $tr_class = ($tr_class == 'even') ? 'odd' : 'even';
+    $output .= '<tr class="'. $tr_class .' last"><td class="cart-label" '
+              .'colspan="2" align="right">'. t('Subtotal:') .'</td><td class="cart-amount" align="right">'
+              . uc_currency_format($subtotal) .'</td></tr>';
+  }
+  if ($show_vat) {
+    $output .= '<tr class="'. $tr_class .' last"><td class="cart-label" '
+              .'colspan="2" align="right">'. t('VAT:') .'</td><td class="cart-amount" align="right">'
+              . uc_currency_format($vat) .'</td></tr>';
+  }
+  if ($show_total) {
+    $output .= '<tr class="'. $tr_class .' last"><td class="cart-label" '
+              .'colspan="2" align="right">'. t('Total:') .'</td><td class="cart-amount" align="right">'
+              . uc_currency_format($vat+$subtotal) .'</td></tr>';
+  }
+  $output .= '</tbody></table>';
+
+  return $output;
+}
+     
+     
+function uc_custom_auc_update($node, $record) {  
+	if (db_result(db_query('SELECT COUNT(*) FROM {uc_auction_bids} WHERE nid = %d', $node->nid))) {
+		$record = array();
+    }
+    return $record;
+}                        
+
+
+
+function uc_custom_catalog_page($main_cat, $sub_cat = '') {
+	if ($sub_cat != '') { $main_cat .= '/' . $sub_cat; }
+	if ($result = db_result(db_query("SELECT src FROM {url_alias} WHERE dst = 'varepartier/%s'", $main_cat))) {
+   		$catalog_url = explode('/', $result);
+        return theme('uc_catalog_browse', $catalog_url[1], 'consumer');
+    } else {
+    	return drupal_not_found();
+    }
+}
+
+ 
+
+/*function uc_custom_menu_alter(&$callbacks) {
+	unset($callbacks['node/%node/bids']);*/
+/*	print 'boooh';
+	dprint_r($callbacks);
+}                        */
+
+
+       
+/**
+ * View the user's products for sale
+ */
+function uc_custom_user_products($see_user) {
+	$user = user_load($see_user);
+} 
+
+
+function uc_custom_privatemsg_insert($message) {
+	$message['author_name'] = $message['author']->name;	
+	$recipients = $message['recipients'];
+    unset($message['recipients']);
+    unset($message['author']);    
+	foreach ($recipients as $recipient) {
+		drupal_mail('uc_custom', 'uc_custom_pm_notify', $recipient->mail, user_preferred_language($recipient), array('user' => $recipient, 'message' => $message));
+	}        
+
+
+}
+
+
+/**
+ * Allows a user to administrate his products.
+ *
+ * @param $products
+ *   An array of product node ids that the form should render
+ * @account
+ *   The user that owns the products.
+ */
+function uc_custom_product_admin_form(&$form_state, $products, $account) {
+	global $user; 
+
+    $tree = taxonomy_get_tree(4);
+	$cats = array(0 => t('Please choose a category ...'));
+	if ($tree) {
+	    foreach ($tree as $term) {
+			if ($term->parents[0] == 0) {
+				$cats[$term->name] = array();
+                $children = taxonomy_get_children($term->tid);
+                foreach ($children as $child) {
+					$cats[$term->name][$child->tid] = $child->name;                    
+                }
+            }
+	    }
+	}			
+		                      
+	$form = array(
+    	'#theme' => 'uc_custom_product_admin',
+        '#submit' => array('uc_custom_product_admin_form_submit'),
+        '#validate' => array('uc_custom_product_admin_form_validate'),
+        'bulk_action' => array(
+        	'#type' => 'select',                          
+			'#options' => array(
+				'' => '',
+				'update' => t('Update'),
+				'activate' => t('Publish'),
+				'de-activate' => t('Unpublish'),
+				'category' => t('Change Category ...'),
+				'delete' => t('Delete'),
+			),
+        ),
+		'category' => array(
+			'#type' => 'select',
+			'#attributes' => array('style' => 'display:none;'),
+			'#options' => $cats,
+		),	
+		'save_changes' => array(
+			'#type' => 'submit',
+	       	'#name' => 'save_changes',                    
+			'#value' => t('Save Changes'),
+		),							
+	);
+	
+	$form['products'] = array(
+		'#type' => 'value',
+		'#value' => $products,
+	);		
+	
+	foreach ($products as $product) {
+		$product = node_load($product);
+		$form['chk_' . $product->nid] = array(
+			'#type' => 'checkbox',
+		);
+		$default = $product->use_stock ? (int)$product->stock_level : '';
+		$form['stock_' . $product->nid] = array(
+			'#type' => 'textfield',
+			'#size' => 3,
+			'#maxlength' => 7,
+			'#default_value' => $default,
+		);
+	}
+
+	return $form;
+
+}
+
+
+function uc_custom_product_admin_form_validate($form, &$form_state) {
+	
+	if ($form_state['values']['bulk_action'] == 'category') {
+		if (!$form_state['values']['category']) form_set_error('category', t('Please choose the category to put the selected items in.'));
+	}
+	foreach ($form_state['values'] as $key => $value) {
+		if (strstr($key, 'stock_') && $value <> '' && (!is_numeric($value) || intval($value) != $value)) form_set_error($key, t('Please enter a whole number or leave blank.'));
+	}
+}
+
+function uc_custom_product_admin_form_submit($form, &$form_state) {
+	global $user;
+
+	$nids = $form_state['values']['products'];
+	$action = $form_state['values']['bulk_action'];
+	$now = time();
+	$messages = array();
+	
+	foreach ($nids as $nid) {
+		if (($action <> '' && $form_state['values']['chk_' . $nid]) || $form['stock_' . $nid]['#default_value'] <> $form_state['values']['stock_' . $nid]) { 
+			$node = node_load($nid);
+			$savenode = false;
+//print_r($node);	echo '<hr>';
+			if (node_access('update', $node)) {
+				if ($form['stock_' . $nid]['#default_value'] <> $form_state['values']['stock_' . $nid]) {
+					if ($form_state['values']['stock_' . $nid] == '') {
+						if (isset($node->uc_auction)) {
+							drupal_set_message(t('Stock management could not be disabled for <strong>@title</strong>. Please wait for auction to finish, disable auction and then try again.', array('@title' => $node->title)), 'error');
+						}
+						else {
+							$node->use_stock = 0;
+							$node->stock_level = 0;
+							$node->threshold = 0;
+							$messages[] = t('Disabled stock management for <strong>@title</strong>.', array('@title' => $node->title));
+							$savenode = true;
+						}
+					} else {
+						$node->use_stock = 1;
+						$node->stock_level = (int)$form_state['values']['stock_' . $nid];
+						if ($form['stock_' . $nid]['#default_value'] == '') {
+							$messages[] = t('Enabled stock management for <strong>@title</strong> and set stock level to <strong>@stock2</strong>.', array('@title' => $node->title, '@stock2' => $form_state['values']['stock_' . $nid]));
+						} else {
+							$messages[] = t('Changed <strong>@title</strong> stock level from <strong>@stock1</strong> to <strong>@stock2</strong>.', array('@title' => $node->title, '@stock1' => $form['stock_' . $nid]['#default_value'], '@stock2' => $form_state['values']['stock_' . $nid]));
+						}
+						if ($node->stock_level === 0) {
+							$node->status = 0;
+							$messages[] = t('De-activated <strong>@title</strong> because stock level is 0.', array('@title' => $node->title));
+						}
+						$savenode = true;
+					}
+				}
+				if ($form_state['values']['chk_' . $nid]) {
+					if ($action <> 'category' && isset($node->uc_auction)) {
+						drupal_set_message(t('Item <strong>@title</strong> cannot be modified while auction is running. Please wait for auction to finish, disable auction and then try again.', array('@title' => $node->title)), 'error');
+					}
+					else {
+						switch ($action) {
+							case 'update':
+	//							$node->changed = $now;
+								$messages[] = t('Updated <strong>@title</strong>.', array('@title' => $node->title));
+								$savenode = true;
+								break;
+	
+							case 'activate':
+	//							$node->changed = $now;
+								$node->status = 1;
+								$messages[] = t('Activated <strong>@title</strong>.', array('@title' => $node->title));
+								$savenode = true;
+								break;						
+		
+							case 'de-activate':
+								$node->status = 0;
+								$messages[] = t('De-activated <strong>@title</strong>.', array('@title' => $node->title));
+								$savenode = true;
+								break;
+								
+							case 'category':
+								$current_term = array_shift($node->taxonomy);
+								if ($term = taxonomy_get_term($form_state['values']['category'])) {
+									if ((int)$term->tid != (int)$current_term->tid) {
+										//$node->changed = $now;
+										taxonomy_node_delete($node);
+										taxonomy_node_save($node, array($term));
+										$messages[] = t('Moved <strong>@title</strong> to category <strong>@category</strong>.', array('@title' => $node->title, '@category' => $term->name));
+									}
+								}	
+								break;
+								
+							case 'delete':
+								if (node_access('delete', $node)) {
+									$messages[] = t('Deleted <strong>@title</strong>.', array('@title' => $node->title));
+									node_delete($node->nid);
+								}
+								break;
+					
+						}
+					}
+				}
+				if ($savenode) node_save($node);
+			}
+		
+		}
+		
+	}
+
+	if (count($messages)) {
+		drupal_set_message('<h2>' . t('These changes were made:') . '</h2><ul><li>' . implode('</li><li>', $messages) . '</li></ul>');	
+	}
+	else {
+		drupal_set_message(t('<strong>No changes were made!</strong> Please remember to check the checkboxes next to the items you wish to modify.'), 'warning');
+	}
+}
+
+
+/**
+ * Theme the product admin form.
+ *
+ * @param $form
+ *   The form to theme.
+ * @return
+ *   The themed form.
+ */
+function theme_uc_custom_product_admin($form) {
+
+//	drupal_add_js(drupal_get_path('theme', 'zenlager').'/js/jquery-ui-1.7.3.custom.min.js', 'external');
+// We can't install jQuery 1.3+ (activate jquery_update module) before numerous other modules have been updated to support new selector syntax, where "@" cannot be used anymore.
+
+	drupal_add_js(drupal_get_path('module', 'uc_custom').'/uc_custom.js'); 
+
+	$order_raw = $_GET['order'];
+	$sort_raw = $_GET['sort'];
+	$uri = $_GET['q'];	
+	$sort_map = array(
+		'sku' => 'asc',
+		'title' => 'asc',
+		'date' => 'desc',
+		'price' => 'desc',
+		'updated' => 'desc',
+		'active' => 'desc',
+		'stock' => 'desc',
+	);
+	if (isset($sort_map[$order_raw]) && ($sort_raw == $sort_map[$order_raw] || !$sort_raw)) {
+		$sort_map[$order_raw] = $sort_raw != 'asc' ? 'asc' : 'desc';
+	}
+	
+	// Take the products array carried over from the form function and remove from form to be rendered.
+	$products = $form['products']['#value'];
+
+	$rows = array();
+	$class = 'odd';
+	$now = time();
+	
+	foreach ($products as $product_id) {
+		$node = node_load($product_id);
+
+	  $terms = taxonomy_node_get_terms($node, 4);
+	  $term = array_shift($terms);
+	  $category = '<a href="/user/' . $node->uid . url('catalog/'.$term->tid) . '">' . $term->name . '</a>';
+
+      if (module_exists('imagecache')) {
+        if (($field = variable_get('uc_image_'. $node->type, '')) && isset($node->$field) && file_exists($node->{$field}[0]['filepath'])) {
+          $image = $node->{$field}[0];
+          $img_field = '<td class="product-picture hoverbox">' . theme('imagecache', 'product_list_small', $image['filepath'], $image['data']['alt'], $image['data']['title']) . theme('imagecache', 'hoverbox', $image['filepath'], '', '', array('class' => 'preview')) . '</td>';
+        }
+        else {
+          $img_field = '<td class="product-picture">' . t('n/a') . '</td>';
+        }
+      }    
+	  
+		if (isset($node->uc_auction)) {
+			if ($node->uc_auction['expiry'] < $now) {
+	        	$timeleft = t('Auction ended');
+			}
+	        else {
+				$timeleft = format_interval($node->uc_auction['expiry'] - $now);				                               
+	        }  
+
+			$bid_row = '<div><img src="/sites/all/themes/zenlager/images/ikon_auktion_small.png" alt="'.t('This item is on auction.').'" /> ' . t('!count bids', array('!count' => $node->uc_auction['bid_count'])) . '</div>';
+			$bid_row .= '<div>' . uc_currency_format($node->uc_auction['high_bid_amt']) . '</div>';
+			$bid_row .= '<div><img alt="' . t('Expiring') . '" src="/sites/all/themes/zenlager/images/ikon_timeleft16.png" /> ' . $timeleft . '</div>';
+			$price = $node->sell_price > 0 && $node->uc_auction['buy_now'] ? uc_currency_format($node->display_price) : '';
+		}
+		else if (isset($node->uc_bartering)) {
+			$bids = uc_bartering_get_node_bids($node);
+		
+			$bid_row = '<div><img src="/sites/all/themes/zenlager/images/ikon_givetbud_small.png" alt="'.t('You can negotiate a price for this item.').'" /> ' . l(t('!count bids', array('!count' => $node->uc_bartering['bid_count'])), 'node/' . $node->nid . '/bids') . '</div>';			
+			if (count($bids)) $bid_row .= '<div>' . uc_currency_format($bids['max_bid']) . '</div>';		
+			$price = $node->sell_price > 0 ? uc_currency_format($node->display_price) : '';
+			if ($bids['awaiting_seller']) $bid_row .= '<div class="red"><strong>' . t('Waiting bids') . '</strong></div>';				
+		}
+		else {
+			$bid_row = '';
+			$price = uc_currency_format($node->display_price);
+		}
+		$price = '<div>' . $price . '</div><div class="product-vat-info">' . $node->vat_info . '</div>';
+		
+		if ($node->type == 'consumer' || $node->field_price_per_piece[0]['value']) {
+			$item_nom = 'pcs.';
+			$qty_description = '<img align="absmiddle" src="/sites/all/themes/zenlager/images/ikonSingle20.gif" alt="' . t('Free quantity, price is per item.') . '" /> ' . t('Free quantity.');
+		} else {
+			$item_nom = 'lots';
+			$qty_description = '<img align="absmiddle" src="/sites/all/themes/zenlager/images/ikonLot20.gif" alt="' . t('Bulk lot, price is per lot.') . '" /> ' . t('Lot containing <strong>@count</strong> pcs.', array('@count' => number_format($node->pkg_qty, 0, ',', '.')));
+		}
+
+	  //if ($node->use_stock) {
+	  	$stock_row = drupal_render($form['stock_' . $node->nid]) . ' ' . $item_nom;
+	  /*} else {
+	  	$stock_row = '';
+	  } */   
+	  
+	  $changed_class = $node->changed < strtotime("-27 days", $now) ? ' red' : '';
+	  $changed = t('Upd.:') . ' <span class="' . $changed_class . '">' . date('d-m-Y', $node->changed) . '</span>';	
+		
+		$cut_title = strlen($node->title) > 30 ? substr($node->title, 0, 26) . ' ...' : $node->title;
+		$title = '<div><strong>' . l($cut_title, 'node/'. $node->nid, array('attributes' => array('title' => $node->title))) . '</strong>';
+		if (!$node->status) $title .= ' <span class="red"><strong>' . t('Not published') . '</strong></span>';
+		if (strlen($node->model) && $node->model <> $node->uid . '-' . $node->nid) $title .= '<span class="product-sku"> - ' . $node->model . '</span>';
+		$title .= ' <span class="product-edit-link">[ ' . l(t('Edit'), 'node/' . $node->nid . '/edit') . ' ]</span>';
+		$title .= '</div><div class="product-category">' . $category . '</div><div><div class="product-updated">' . $changed . '</div>';
+		if ($node->type == 'vareparti') $title .= $qty_description;
+		$title .= '</div>';
+	
+		$row = array(
+			'<td class="product-checkbox">' . drupal_render($form['chk_' . $node->nid]) . '</td>',
+			$img_field,
+			'<td valign="top" class="product-name">' . $title . '</td>',
+			'<td valign="top" class="product-stock">' . $stock_row . '</td>',
+			'<td valign="top" class="product-bids">' . $bid_row . '</td>',
+			'<td valign="top" class="product-price">' . $price . '</td>',
+		);
+		
+		if (!$node->status) $class = 'disabled';
+		$rows[] = '<tr class="' . $class . '">' . implode('', $row) . '</tr>';
+		$class = $class == 'odd' ? 'even' : 'odd';
+	}
+	
+	$header = array(
+		'<th><input type="checkbox" name="toggle_chk_" id="toggle_chk_" /></th>',
+		'<th colspan="2">' . l(t('Product'), $uri, array('query' => array('order' => 'title', 'sort' => $sort_map['title']))) . ' / ' . l(t('SKU'), $uri, array('query' => array('order' => 'sku', 'sort' => $sort_map['sku']))) . ' / ' . l(t('Updated'), $uri, array('query' => array('order' => 'updated', 'sort' => $sort_map['updated']))) . '</th>',
+		'<th>' . l(t('Stock'), $uri, array('query' => array('order' => 'stock', 'sort' => $sort_map['stock']))) . '</th>',
+		'<th>' . t('Bids / Highest') . '</th>',
+		'<th>' . l(t('Price'), $uri, array('query' => array('order' => 'price', 'sort' => $sort_map['price']))) . '</th>',
+	);
+
+	$output = '<div class="product-table-buttons"><table><tbody><tr><td>' . t('Do with selected items') . ': </td><td>';
+	$output .= drupal_render($form['bulk_action']) . '</td><td rowspan="2">' . drupal_render($form['save_changes']) . drupal_render($form['form_build_id']) . drupal_render($form['form_token']) . drupal_render($form['form_id']) . '</td></tr>';
+	$output .= '<tr><td colspan="2" align="right">' . drupal_render($form['category']) . '</td></tr></tbody></table>';
+	$output .= '</div><table cellspacing="2" class="products-edit-table"><thead>' . implode('', $header) . '</thead><tbody>' . implode('', $rows) . '</tbody></table>';
+
+	return $output;
+}
+
+  
+/**
+ * See if the user can view a particular user's bidding activity.
+ *
+ * @param $see_user
+ *   The user whose activity will be seen.
+ * @return
+ *   Whether the current user can see the activity or not.
+ */
+function uc_custom_user_perm($see_user) {
+	global $user;
+	return $user->uid == $see_user->uid || user_access('administer users');
+}    
+
+
+/**
+ * Load an array of products based on the �nputted criteria. Array can then be used to display products as desired.
+ * This function borrows a lot from the catalog display function in ubercart uc_catalog.pages.inc
+ */
+function uc_custom_get_products($tid = 0, $lv_type = 'vareparti', $sale_method = '', $account = 0, $status = 1) {
+
+	$order_raw = $_GET['order'];
+	$sort_raw = $_GET['sort'];
+	
+	$order_map = array(
+		'sku' => 'p.model',
+		'title' => 'n.title',
+		'date' => 'n.created',
+		'price' => 'p.sell_price',
+		'updated' => 'n.changed',
+		'active' => 'n.status',
+		'stock' => 's.stock',
+	);
+	$order = isset($order_map[$order_raw]) ? $order_map[$order_raw] : 'n.created';
+	if ($order == 'p.model' || $order == 'n.title' || $sort_raw == 'asc') {
+		$sort = 'asc';
+	} else {
+		$sort = 'desc';
+	}
+	$sql_order = ' ORDER BY ' . $order . ' ' . $sort;
+	
+ 	$uid = is_object($account) ? $account->uid : 0;
+  	$types = array($lv_type);  
+  	$sql_args = array();
+	
+	if ($tid >= 1) {
+  		$child_tids = $tid;   
+		$vid = variable_get('uc_catalog_vid', 0);
+		$children = taxonomy_get_children($tid, $vid);
+
+		foreach ($children as $child) {
+			$child_tids .= ', '.$child->tid;
+		}
+	}		
+  
+  $sql_join = '';
+  if ($sale_method == 'auktioner') {
+	$sql_join = 'INNER JOIN {uc_auction} AS uca ON n.nid = uca.nid ';
+  }                                                                 
+  elseif ($sale_method == 'prisforhandling') {
+	$sql_join = 'INNER JOIN {uc_bartering} AS ucb ON n.nid = ucb.nid ';  
+  }
+
+  $sql_where = '';  
+  if (is_object($account)) {
+	$sql_where = ' AND n.uid = '.$account->uid;  
+  } 
+  
+  if ($tid >= 1) {
+	  $sql_args[] = $child_tids;
+      $sql_where .= ' AND tn.tid IN (%s)';
+  }  
+  
+  if ($status === 1 || $status === 0) {
+  	$sql_where .= ' AND n.status = ' . $status;
+  }   
+  
+  $sql_where = substr($sql_where, 5);  
+  
+
+  $sql = "SELECT DISTINCT(n.nid), n.sticky, n.title, n.created, p.model, p.sell_price, p.ordering, s.stock 
+    FROM {node} n
+      INNER JOIN {term_node} tn ON n.vid = tn.vid
+      INNER JOIN {uc_products} AS p ON n.vid = p.vid 
+	  LEFT JOIN {uc_product_stock} s ON n.nid = s.nid "
+      . $sql_join .
+    "WHERE ".$sql_where .
+      " AND n.type IN (". db_placeholders($types, 'varchar') .")" . $sql_order;      
+
+      $sql_count = "SELECT COUNT(DISTINCT(n.nid))
+        FROM {node} n
+          INNER JOIN {term_node} tn ON n.vid = tn.vid
+      INNER JOIN {uc_products} AS p ON n.vid = p.vid "
+      . $sql_join .
+    "WHERE ".$sql_where .
+         " AND n.type IN (". db_placeholders($types, 'varchar') .")";          
+
+  $sql = db_rewrite_sql($sql);
+  $sql_count = db_rewrite_sql($sql_count);
+
+  foreach ($types as $type) {
+    $sql_args[] = $type;
+  }
+
+  $products = array();
+  $result = pager_query($sql, variable_get('uc_product_nodes_per_page', 12), 0, $sql_count, $sql_args);
+  while ($node = db_fetch_object($result)) {
+    $products[] = $node->nid;  
+  }
+
+  return $products;
+
+}
+
+// + FUNCTION (Copy of uc_catalog_get_page
+// We have to copy it in here to modify loading of child nodes to include grand children in the count and to filter by i.e. username
+/**
+ * Load catalog information for display.
+ *
+ * Retrieve image, product, and subcategory information for the current term id.
+ *
+ * @param $tid
+ *   Taxonomy term id.
+ * @return
+ *   A catalog object containing all the information needed to display a catalog page.
+ */
+function uc_custom_get_catalog_page($tid, $types = array(), $uid = 0) {
+  $catalog = new stdClass();
+  $vid = variable_get('uc_catalog_vid', 0);
+
+  if ($tid) {
+    $term = taxonomy_get_term($tid);
+    $name = $term->name;
+    $description = $term->description;
+  }
+  else {
+    $tid = 0;
+    $name = variable_get('uc_catalog_name', t('Catalog'));
+    $description = variable_get('uc_catalog_description', '');
+  }
+  $catalog->tid = $tid;
+  $catalog->vid = $vid;
+  $catalog->name = $name;
+  $catalog->description = $description;
+  $catalog->children = array();
+  if ($file = uc_catalog_image_load($catalog->tid)) {
+    if (module_exists('imagecache')) {
+      $file_path =  file_create_url(file_directory_path() .'/imagecache/uc_category/'. $file->filepath);
+    }
+    else {
+      $file_path = $file->filepath;
+    }
+    $info = image_get_info($file_path);
+    $catalog->image = $info;
+    $catalog->image['filepath'] = $file->filepath;
+  }
+  if (!count($types)) {
+	  $types = uc_product_types(); 
+  }            
+
+  $links = array();
+  $child_list = array();
+  $children = taxonomy_get_children($tid, $vid);
+  foreach ($children as $child) {
+    $n = 0;
+    foreach ($types as $type) {
+      $n += uc_custom_term_count_nodes($child->tid, $type, $uid);
+    }
+    $child->nodes = $n;
+    
+    // Display child category's image.
+    if (module_exists('imagecache') && $file = uc_catalog_image_load($child->tid)) {
+      $imagecache_path =  file_create_url(file_directory_path() .'/imagecache/uc_category/'. $file->filepath);
+      $info = image_get_info($imagecache_path);
+      $child->image = $info;
+      $child->image['filepath'] = $file->filepath;
+    }
+    // Display list of child category's children categories.
+    // If more than $max_gc_display, show "More..." link to child.
+    $grandchildren_list = taxonomy_get_children($child->tid, $vid);
+    $child->children = $grandchildren_list;
+    $catalog->children[] = $child;
+  }
+  //$node_resource = taxonomy_select_nodes(array($tid));
+  return $catalog;
+} 
+
+ 
+
+/**
+ * Count the number of published nodes classified by a term. 
+ *
+ * @param $tid
+ *   The term's ID
+ *
+ * @param $type
+ *   The $node->type. If given, taxonomy_term_count_nodes only counts
+ *   nodes of $type that are classified with the term $tid.
+ *
+ * @return int
+ *   An integer representing a number of nodes.
+ *   Results are statically cached.
+ */
+function uc_custom_term_count_nodes($tid, $type = 0, $uid = 0) {
+  static $count;  
+
+  $sql_where = '';  
+  if ($uid > 0) {
+  	$sql_where = ' AND n.uid = '.$uid;
+  }
+
+  if (!isset($count[$type])) {
+    // $type == 0 always evaluates TRUE if $type is a string
+    if (is_numeric($type)) {
+      $result = db_query(db_rewrite_sql('SELECT t.tid, COUNT(n.nid) AS c FROM {term_node} t INNER JOIN {node} n ON t.vid = n.vid WHERE n.status = 1'.$sql_where.' GROUP BY t.tid'));
+    }
+    else {
+      $result = db_query(db_rewrite_sql("SELECT t.tid, COUNT(n.nid) AS c FROM {term_node} t INNER JOIN {node} n ON t.vid = n.vid WHERE n.status = 1".$sql_where." AND n.type = '%s' GROUP BY t.tid"), $type);
+    }
+    $count[$type] = array();
+    while ($term = db_fetch_object($result)) {
+      $count[$type][$term->tid] = $term->c;
+    }
+  }
+  $children_count = 0;
+  foreach (_taxonomy_term_children($tid) as $c) {
+    $children_count += uc_custom_term_count_nodes($c, $type, $uid);
+  }
+  return $children_count + (isset($count[$type][$tid]) ? $count[$type][$tid] : 0);
+}       
+
+
+function uc_custom_product_instructions($type = 'vareparti') {
+
+	$rules = array();
+
+	if ($type == 'vareparti') {
+	    $rules[0] = array(
+    	   	'title' => t('What can be sold as a bulk lot?'),
+        	'points' => array(
+           		t('Only actual bulk lots containing <strong>numerous</strong> pieces of the same product <strong>OR</strong> very valuable single items such as vehicles, industrial machines, etc. can be sold as bulk lots. Other quantities of less than 5 items must be sold as warehouse sale items.'),
+				t("As a rule, the more valuable the products are, the fewer pieces are required to constitute a bulk lot. Please consider honestly, if the lot you're about to create, will be interesting for shops to buy and re-sell. Keeping the site catalogue from getting cluttered with small lots of odd items will make serious buyers want to keep visiting the site in the long run."),
+			),
+		);
+	} else {
+	    $rules[0] = array(
+    	   	'title' => t('What can be sold as a retail item?'),
+        	'points' => array(
+           		t('All products can be sold as retail items, as long as they are legal to sell to consumers.'),
+				t("When selling your items at a fixed price, the price must be significantly lower than the normal retail price. Help keep prices low in the spirit of the warehouse sale, so buyer will keep wanting to come back."),
+			),
+		);    
+    }        
+    
+	$rules[1] =	array(
+       	'title' => t('Rules for selling'),
+        'points' => array(
+          	t("When selling through the internet, you must comply with the relevant legislation. Please find more information on this here: !url", array('!url' => l('Regler for fortrydelsesret', 'http://www.forbrug.dk/forbrugerombudsmanden/hvadgaelder/mfl/godskik/saerlige-omraader/internet/net-tjek-dk/neterhverv/fortrydelsesret', array('absolute' => TRUE, 'attributes' => array('target' => '_blank'))))),
+			t("Please make sure you're familiar with our <a href=\"/information/handelsbetingelser\" target=\"_blank\">terms and conditions</a> for selling through this site."),
+		),
+	);
+    
+/*    	array(
+        	'title' => t(''),
+            'points' => array(
+            	t(''),
+			),
+		),                */
+                                    
+	
+    $instructions = array(
+    	0 => array(
+        	'title' => t('Category selection'),
+            'points' => array(
+				t('Please take the time to learn the categories, so you select the proper category for each of your products. Choosing the wrong category for a product greatly reduces the chance that users will find it.'),            	
+			),                
+		),    
+	);        
+	if ($type == 'vareparti') {
+	    $instructions[0]['points'][] = t('The "Mixed lots" categories are <strong>only</strong> for lots that actually contain products from different categories. If the products in your lot fit into the same category, choose this and not "Mixed lots"');
+		$instructions[0]['points'][] = t("If you think we're lacking the right category for your product, please choose the best match for now, and then contact us to request a new category.");
+	} else {
+	    $instructions[0]['points'][] = t("The \"Mixed lots\" categories are <strong>only</strong> for bulk lots. Please don't put retail items in these categories.");    
+    }        
+        
+	$instructions[1] = array(
+       	'title' => t('Product description and pictures'),
+        'points' => array(
+           	t('The description should contain as much detailed information about the product as possible. The more information you provide, the greater the chance of a sale. As a rule, the more valuable a product is, the more information will be needed for someone to make a purchase.'),            
+            t("The more pictures, the better. The larger pictures, the better. The clearer pictures, the better. Don't expect to sell anything besided widely known brand products, if you don't provide plenty of high-quality pictures of it."),            
+		),
+	);
+	if ($type == 'vareparti') {
+		$instructions[1]['points'][] = t("If possible, place a direct link to the product's page on the manufacturer's website. You can include links to more information about the product, as long as you don't link to your own website or other marketplace websites.");                                    
+	} else {
+		$instructions[1]['points'][] = t("If possible, place a direct link to the product's page on the manufacturer's website. You can include links to more information about the product.");                                        
+    }
+        
+	$instructions[2] = array(
+       	'title' => t('Fixed price, bargaining or auction?'),
+		'points' => array(            	            
+            t("We generally recommend enabling bargaining. This brings back the exitement in trading, and it provides flexibility for the potential buyer. If he can't meet the desired price, he has the option of trying to bargain with you instead of just giving up."),
+			t("If you put a sale item on auction, bargaining will be disabled for the duration of the auction."),
+         ),
+	);
+	if ($type == 'vareparti') {
+		$instructions[2]['points'][] = t("If your lot contains non-identical items, and you allow for purchasing smaller quantities of it, you should enable bargaining, as this gives the buyer the option to attach a message to his bid. This gives full flexibility, as he can request for certain shapes, colours, etc.");
+	}        
+    
+	if ($type == 'vareparti') {
+		$instructions[3] = array(
+    	   	'title' => t('Selling the lot as single items'),
+			'points' => array(
+           		t("When you create a bulk lot, you have the option of quickly putting the items in your lot for sale as single items for consumers. When you do this, a separate product listing will appear among your warehouse sale items, and you will now be able to edit this directly or through the bulk lot from which it was created."),            
+				t("The system will keep track of stock levels in both listings together. This means that if an item is sold through its warehouse sale listing, the sold quantity will be deducted from the bulk lot's stock level as well."),
+			),
+		);
+	}        
+    
+/*    	array(
+        	'title' => t(''),
+            'points' => array(
+            	t(''),
+			),
+		),        */
+
+    
+    $output = '<h2>'.t('Important Rules').'</h2>';
+	foreach ($rules as $section) {
+		$output .= '<h3>'.$section['title'].'</h3><ul><li>'.implode('</li><li>', $section['points']).'</li></ul>';
+    }		
+
+    $output .= '<h2>'.t('Useful tips').'</h2>';
+	foreach ($instructions as $section) {
+		$output .= '<h3>'.$section['title'].'</h3><ul><li>'.implode('</li><li>', $section['points']).'</li></ul>';
+    }		    
+
+    return $output;
+}
+

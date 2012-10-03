@@ -1,0 +1,313 @@
+<?php
+// $Id$
+/**
+* Install the Auctionflex module:
+* Create aflex_clients for storing registered clients
+* Create aflex_catalogue table for storing catalogued lots
+* Create aflex_bidcards for distributing bid cards for auctions
+* Create aflex_bids for storing bid history
+* @file
+*/
+
+/**
+* Implementation of hook_install().
+*/
+function auctionflex_install() {
+	drupal_install_schema('auctionflex');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function auctionflex_uninstall() {
+	drupal_uninstall_schema('auctionflex');
+}
+
+/**
+* Implementation of hook_schema(),
+*/
+function auctionflex_schema() {
+	return array(
+		'aflex_clients' => array(
+			'description' => 'Table for storing auctionflex clients.',
+			'fields' => array(
+				'client_id' => array(
+					'description' => 'The UNIQUE Auctionflex client ID.',
+					'type' => 'varchar',
+                    'length' => 10,							
+					'not null' => TRUE,
+				),
+				'uid' => array(
+					'description' => 'The {user}.uid of the client.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),				   
+                'company' => array(
+                	'description' => 'Client company.',
+			        'type' => 'varchar',
+			        'length' => 100,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  
+                'vat_id' => array(
+                	'description' => 'Company VAT ID.',
+			        'type' => 'varchar',
+			        'length' => 12,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  									              
+                'first_name' => array(
+                	'description' => 'Client first name.',
+			        'type' => 'varchar',
+			        'length' => 100,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  				              
+                'middle_name' => array(
+                	'description' => 'Client middle name.',
+			        'type' => 'varchar',
+			        'length' => 100,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  				              
+                'last_name' => array(
+                	'description' => 'Client last name.',
+			        'type' => 'varchar',
+			        'length' => 100,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  	
+				'address' => array(
+					'description' => 'Client address.',
+					'type' => 'text',
+					'not null' => TRUE,					
+					'default' => '',
+				),								              
+                'city' => array(
+                	'description' => 'Client city.',
+			        'type' => 'varchar',
+			        'length' => 100,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  				              
+                'state_code' => array(
+                	'description' => 'Client state.',
+			        'type' => 'varchar',
+			        'length' => 3,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  				              
+                'zip' => array(
+                	'description' => 'Client zip.',
+			        'type' => 'varchar',
+			        'length' => 12,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  				              												
+                'country' => array(
+                	'description' => 'Client country.',
+			        'type' => 'varchar',
+			        'length' => 30,
+			        'not null' => TRUE,
+			        'default' => '',
+                ),  				              												
+                'email' => array(
+                	'description' => 'Client e-mail.',
+			        'type' => 'varchar',
+			        'length' => 75,
+			        'not null' => TRUE,
+			        'default' => '',
+                ), 
+				'opt_out' => array(  				  
+                	'description' => 'Client wishes to opt out from getting e-mails.',				            
+                    'type' => 'int',
+                    'size' => 'tiny',
+                    'unsigned' => TRUE,
+                    'not null' => TRUE,
+                    'default' => 0,
+				),	
+			),
+			'indexes' => array(
+				'client_id' => array('client_id'),
+				'uid' => array('uid'),
+			),
+		),		
+		'aflex_catalogue' => array(
+			'description' => 'Table for storing auctionflex catalogue items.',
+			'fields' => array(
+				'lot_id' => array(
+					'description' => 'An internal unique lot id. Not used by Auctionflex.',
+					'type' => 'serial',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),			
+				'lotnum' => array(									 
+					'description' => 'The auctionflex lot number.',				
+					'type' => 'varchar',
+                    'length' => 10,							
+					'not null' => TRUE,
+				),
+				'auction_id' => array(
+					'description' => 'The ID number of the auction.',
+					'type' => 'int',
+					'size' => 'small',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),				   
+				'inventorynum' => array(									 
+					'type' => 'int',
+                    'size' => 'small',							
+					'unsigned' => TRUE,					
+					'not null' => TRUE,
+				),					   
+				'quantity' => array(									 
+					'type' => 'numeric',
+                    'precision' => 8,							
+					'scale' => 2,
+				),					   				
+				'inventorytype' => array(									 
+					'type' => 'varchar',
+                    'length' => 20,							
+					'not null' => TRUE,
+				),
+				'lead' => array(									 
+					'type' => 'varchar',
+                    'length' => 50,							
+					'not null' => TRUE,
+				),
+				'description' => array(
+					'type' => 'text',
+					'not null' => TRUE,					
+					'default' => '',
+				),		
+				'aflexcategory' => array(									 
+					'type' => 'varchar',
+                    'length' => 30,							
+					'not null' => TRUE,
+				),
+				'presaleestmin' => array(									 
+					'type' => 'numeric',
+                    'precision' => 8,							
+					'scale' => 2,
+				),				
+				'presaleestmax' => array(									 
+					'type' => 'numeric',
+                    'precision' => 8,							
+					'scale' => 2,
+				),	
+				'reserveeach' => array(									 
+					'type' => 'numeric',
+                    'precision' => 8,							
+					'scale' => 2,
+				),														
+				'images' => array(
+					'type' => 'text',
+					'not null' => TRUE,					
+					'default' => '',
+				),
+				'winning_bid' => array(									
+					'description' => 'The winning bid amount.',				 
+					'type' => 'numeric',
+                    'precision' => 8,							
+					'scale' => 2,
+				),											
+				'max_bid' => array(									
+					'description' => 'The maximum amount that the winning bidder will pay.',				 
+					'type' => 'numeric',
+                    'precision' => 8,							
+					'scale' => 2,
+				),
+				'winning_bidcard' => array(
+					'description' => 'The bidcard of the winning bidder.',
+					'type' => 'int',
+					'size' => 'small',					
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),										
+			),	
+			'primary key' => array('lot_id'),			
+			'indexes' => array(
+				'lotnum' => array('lotnum'),
+				'inventorytype' => array('inventorytype'),
+				'aflexcategory' => array('aflexcategory'),				
+			),
+		),			 
+		'aflex_bidcards' => array(
+			'description' => 'Table for administrating bidcards.',
+			'fields' => array(
+				'auction_id' => array(
+					'description' => 'The ID number of the auction.',
+					'type' => 'int',
+					'size' => 'small',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),				   
+				'bidcard' => array(
+					'description' => 'The unique bid card id for the auction.',
+					'type' => 'int',
+					'size' => 'small',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),
+				'uid' => array(
+					'description' => 'The {user}.uid of the client.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),				   
+			),	
+			'indexes' => array(
+				'auction_bidcard' => array('auction_id', 'bidcard'),
+				'uid' => array('uid'),
+			),
+		),
+		'aflex_bids' => array(
+			'description' => 'Table for storing bids on auctionflex auctions.',
+			'fields' => array(
+				'bid_id' => array(
+					'description' => 'An internal unique bid id. Not used by Auctionflex.',
+					'type' => 'serial',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),
+				'lot_id' => array(
+					'description' => 'An internal unique lot id. Not used by Auctionflex.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+				),
+				'uid' => array(
+					'description' => 'The {user}.uid of the client.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),							
+				'bid_time' => array(									 
+					'description' => 'The time that the bid was made.',
+					'type' => 'int',
+					'unsigned' => TRUE,
+					'not null' => TRUE,
+					'default' => 0,
+				),
+				'max_amount' => array(									
+					'description' => 'The maximum amount that the client will pay.',				 
+					'type' => 'numeric',
+                    'precision' => 8,							
+					'scale' => 2,
+				),							 
+			),	
+			'primary key' => array('bid_id'),			
+			'indexes' => array(
+				'lot_id' => array('lot_id'),
+				'uid' => array('uid'),				
+			),
+		),						 
+		
+	);
+
+}

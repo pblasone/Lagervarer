@@ -1,0 +1,14 @@
+; $Id: user_titles.info,v 1.3 2008/12/08 02:25:29 agileware Exp $
+
+name = "User titles"
+description = "Allow users to have titles based upon how many posts they have."
+version = "6.x-1.x-dev"
+core = "6.x"
+
+
+; Information added by drupal.org packaging script on 2009-01-07
+version = "6.x-1.0-beta2"
+core = "6.x"
+project = "user_titles"
+datestamp = "1231292744"
+

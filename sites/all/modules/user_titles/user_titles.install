@@ -1,0 +1,90 @@
+<?php
+// $Id: user_titles.install,v 1.4.2.1 2009/01/07 01:35:55 agileware Exp $
+/**
+ * @file user_titles.install
+ * Installation file for user_titles module
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function user_titles_schema() {
+  $schema['user_titles'] = array(
+    'fields' => array(
+      'tid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'title' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'value' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '10',
+      ),
+      'image' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'image_title' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('tid'),
+  );
+
+  $schema['user_titles_posts'] = array(
+    'fields' => array(
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '10',
+      ),
+      'posts' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+        'disp-width' => '11',
+      ),
+    ),
+    'primary key' => array('uid'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function user_titles_install() {
+  drupal_install_schema('user_titles');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function user_titles_uninstall() {
+  drupal_uninstall_schema('user_titles');
+}
+
+/**
+ * Implementation of hook_update().
+ */
+function user_titles_update_6100() {
+  $ret = array();
+
+  db_drop_primary_key($ret, 'user_titles');
+  db_change_field($ret, 'user_titles', 'tid', 'tid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('tid')));
+
+  db_add_field($ret, 'user_titles', 'image', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''));
+  db_add_field($ret, 'user_titles', 'image_title', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''));
+
+  return $ret;
+}

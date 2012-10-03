@@ -1,0 +1,115 @@
+<?php
+// $Id$
+
+/**
+* @file
+* Order modification module for Ubercart. Connects orders with individual sellers and maintains the relationship throughout the Ubercart environment.
+*/
+
+    
+/** 
+ * Implementation of hook_menu().
+ */
+function lv_order_menu() {
+	return array(
+  		'user/%user/sales' => array(
+		    'page callback' => 'lv_order_order_history',
+		    'page arguments' => array(1),
+		    'access callback' => 'lv_order_can_view_order',
+		    'access arguments' => array(1),
+		    'type' => MENU_CALLBACK,
+  	    ),
+	);       
+}   
+
+/**
+* Implementation of hook_menu_alter()
+*/      
+function lv_order_menu_alter(&$items) {
+	$items['user/%user/order/%uc_order']['access callback'] = 'lv_order_can_view_order';
+	$items['user/%user/order/%uc_order/invoice']['access callback'] = 'lv_order_can_view_order';
+}
+
+
+/** 
+ * Implementation of hook_order().
+ */
+function lv_order_order($op, &$arg1, $arg2) {
+	switch ($op) {
+    case 'save':
+		if (!$arg1->seller) {
+			if (isset($arg1->products[0])) {
+				$node = node_load($arg1->products[0]->nid);
+				$arg1->seller = $node->uid;            
+			}
+		}            
+        db_query("UPDATE {lv_order} SET seller = %d WHERE order_id = %d", $arg1->seller, $arg1->order_id);
+        if (!db_affected_rows()) {
+			db_query("INSERT INTO {lv_order} (order_id, seller) VALUES (%d, %d)", $arg1->order_id, $arg1->seller);        
+        }
+    
+    	break;
+	case 'load':
+		$result = db_fetch_array(db_query("SELECT * FROM {lv_order} WHERE order_id = %d", $arg1->order_id));
+        $arg1->seller = $result['seller'];
+    	break;
+	case 'delete':
+    	db_query("DELETE FROM {lv_order} WHERE order_id = %d", $arg1->order_id);
+    	break;        
+	}        
+}  
+        
+
+
+
+/**
+ * Returns the sortable table listing of a customer's orders.
+ *
+ * @param $uid
+ *   The user ID whose orders you wish to list.
+ */
+function lv_order_order_history($user) {
+  drupal_set_title(t('My sales history'));
+
+  $header = array(
+    array('data' => t('Date'), 'field' => 'o.created', 'sort' => 'desc'),
+    array('data' => t('Order #'), 'field' => 'o.order_id'),
+    array('data' => t('Status'), 'field' => 'os.title'),
+    array('data' => t('Products'), 'field' => 'products'),
+    array('data' => t('Total'), 'field' => 'o.order_total')
+  );
+
+  $result = pager_query("SELECT o.order_id, o.created, os.title, SUM(op.qty) AS products, o.order_total AS total FROM {uc_orders} AS o LEFT JOIN {lv_order} AS lo ON lo.order_id = o.order_id LEFT JOIN {uc_order_statuses} AS os ON o.order_status = os.order_status_id LEFT JOIN {uc_order_products} AS op ON o.order_id = op.order_id WHERE lo.seller = %d AND o.order_status IN ". uc_order_status_list('general', TRUE) ." GROUP BY o.order_id, o.created, os.title, o.order_total". tablesort_sql($header), 20, 0, "SELECT COUNT(*) FROM {uc_orders} o LEFT JOIN {lv_order} lo ON o.order_id = lo.order_id WHERE lo.seller = %d AND o.order_status NOT IN ". uc_order_status_list('specific', TRUE), $user->uid);
+
+  // Build a table based on the customer's orders.
+  while ($order = db_fetch_object($result)) {
+    $link = l($order->order_id, 'user/'. $user->uid .'/order/'. $order->order_id);
+    if (user_access('view all orders')) {
+      $link .= '<span class="order-admin-icons">'. uc_order_actions($order, TRUE) .'</span>';
+    }
+    $rows[] = array(
+      array('data' => format_date($order->created, 'custom', variable_get('uc_date_format_default', 'm/d/Y'))),
+      array('data' => $link, 'nowrap' => 'nowrap'),
+      array('data' => $order->title),
+      array('data' => (!is_null($order->products) ? $order->products : 0), 'align' => 'center'),
+      array('data' => uc_currency_format($order->total, TRUE), 'align' => 'right'),
+    );
+  }
+
+  $output = theme('table', $header, $rows) . theme('pager', NULL, 20, 0);
+
+  return $output;
+}
+
+
+function lv_order_can_view_order($order_user, $order = NULL) {
+  global $user;
+
+  $access = user_access('view all orders') || ($user->uid && user_access('view own orders') && $user->uid == $order_user->uid);
+
+  if (!is_null($order)) {
+    $access = $access && ($order_user->uid == $order->uid || $order_user->uid == $order->seller);
+  }
+
+  return $access;
+}

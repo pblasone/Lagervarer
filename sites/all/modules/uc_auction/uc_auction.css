@@ -1,0 +1,34 @@
+/* $Id: uc_auction.css,v 1.1.2.19 2009/03/20 17:00:16 garrettalbright Exp $ */
+
+.uc-auction-bid-table {
+	width: 18em;
+	float: right;
+	clear: right;
+	margin: 0px 0px 1em 1em;
+}
+
+.uc-auction-bid-table tr.odd .form-item, .uc-auction-bid-table tr.even .form-item {
+	/* Overrides system.css */
+	white-space: normal;
+}
+
+.uc-auction-bid-table TH {
+	white-space: nowrap;
+}
+
+.uc-auction-bid-table TD {
+	text-align: right;
+}
+
+.uc-auction-expiry-hour {
+	color: #c60;
+}
+
+.uc-auction-expiry-min, .uc-auction-not-high-bidder {
+	font-size: larger;
+	color: red;
+}
+
+.uc-auction-not-high-bidder {
+	color: red;
+}

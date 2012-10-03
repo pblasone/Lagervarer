@@ -1,0 +1,9 @@
+; $Id$
+name = UC Custom
+description = UC Customizations for Lagervarer
+package = Custom
+core = 6.x
+dependencies[] = uc_product
+package = "Ubercart - extra"
+
+

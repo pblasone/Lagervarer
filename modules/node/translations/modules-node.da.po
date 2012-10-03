@@ -1,0 +1,1323 @@
+# Danish translation of drupal (6.4)
+# Copyright (c) 2008 by the Danish translation team
+# Generated from files:
+#  content_types.inc,v 1.50.2.1 2008/02/13 11:23:28 goba
+#  node.admin.inc,v 1.19.2.1 2008/03/21 22:01:05 goba
+#  node.pages.inc,v 1.28.2.1 2008/02/27 19:44:44 goba
+#  node.module,v 1.947.2.11 2008/06/25 08:59:57 goba
+#  node.install,v 1.4.2.1 2008/04/15 08:39:40 dries
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: drupal (6.4)\n"
+"POT-Creation-Date: 2008-08-25 02:53-0700\n"
+"PO-Revision-Date: 2008-08-18 01:40-0700\n"
+"Language-Team: Danish\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: modules/node/content_types.inc:42
+msgid "No content types available."
+msgstr "Ingen tilgængelige indholdstyper."
+
+#: modules/node/content_types.inc:75
+msgid ""
+"The human-readable name of this content type. This text will be displayed as "
+"part of the list on the <em>create content</em> page. It is recommended that "
+"this name begin with a capital letter and contain only letters, numbers, and "
+"<strong>spaces</strong>. This name must be unique."
+msgstr ""
+"Indholdstypens navn. Teksten vises som en del af listen på siden <em>opret "
+"indhold</em>. Navnet bør begynde med et stort bogstav og kun indholde "
+"bogstaver, tal og <strong>mellemrum</strong>. Navnet skal være unikt."
+
+#: modules/node/content_types.inc:86
+msgid ""
+"The machine-readable name of this content type. This text will be used for "
+"constructing the URL of the <em>create content</em> page for this content "
+"type. This name must contain only lowercase letters, numbers, and "
+"underscores. Underscores will be converted into hyphens when constructing "
+"the URL of the <em>create content</em> page. This name must be unique."
+msgstr ""
+"Indholdstypens maskinlæsbare navn. Teksten bruges til at bygge URLen til "
+"indholdstypens <em>opret indhold</em>-side. Navnet må kun indholde små "
+"bogstaver, tal og understregninger. Understregninger omdannes til "
+"bindestreger når URLen til <em>opret indhold</em>-siden bygges. Navnet skal "
+"være unikt."
+
+#: modules/node/content_types.inc:98
+msgid ""
+"The machine-readable name of this content type. This field cannot be "
+"modified for system-defined content types."
+msgstr ""
+"Indholdstypens interne navn. Du kan ikke ændre navnet på indbyggede "
+"indholdstyper."
+
+#: modules/node/content_types.inc:106
+msgid ""
+"A brief description of this content type. This text will be displayed as "
+"part of the list on the <em>create content</em> page."
+msgstr ""
+"En kort beskrivelse af indholdstypen. Teksten vises som en del af listen på "
+"siden <em>opret indhold</em>."
+
+#: modules/node/content_types.inc:111
+msgid "Submission form settings"
+msgstr "Formularindstillinger"
+
+#: modules/node/content_types.inc:116
+msgid "Title field label"
+msgstr "Etiket på titelfelt"
+
+#: modules/node/content_types.inc:125
+msgid "This content type does not have a title field."
+msgstr "Indholdstypen har ikke et titel-felt."
+
+#: modules/node/content_types.inc:129
+msgid "Body field label"
+msgstr "Etiket på brødtekst"
+
+#: modules/node/content_types.inc:132
+msgid ""
+"To omit the body field for this content type, remove any text and leave this "
+"field blank."
+msgstr "Lad dette felt være tomt hvis indholdstypen ikke har brødtekst."
+
+#: modules/node/content_types.inc:136
+msgid "Minimum number of words"
+msgstr "Minimum antal ord"
+
+#: modules/node/content_types.inc:139
+msgid ""
+"The minimum number of words for the body field to be considered valid for "
+"this content type. This can be useful to rule out submissions that do not "
+"meet the site's standards, such as short test posts."
+msgstr ""
+"Det mindste antal ord en %type skal indeholde for at være gyldig. Brug denne "
+"funktion til at ignorere testindlæg o.l."
+
+#: modules/node/content_types.inc:143
+msgid "Explanation or submission guidelines"
+msgstr "Forklaring eller retningslinjer."
+
+#: modules/node/content_types.inc:145
+msgid ""
+"This text will be displayed at the top of the submission form for this "
+"content type. It is useful for helping or instructing your users."
+msgstr ""
+"Denne tekst vises når nyt indhold af denne type oprettes. Den kan bruges til "
+"at hjælpe dine brugere."
+
+#: modules/node/content_types.inc:149
+msgid "Workflow settings"
+msgstr "Indstillinger for arbejdsgang"
+
+#: modules/node/content_types.inc:154
+msgid "Default options"
+msgstr "Standardindstillinger"
+
+#: modules/node/content_types.inc:162
+msgid ""
+"Users with the <em>administer nodes</em> permission will be able to override "
+"these options."
+msgstr ""
+"Brugere med tilladelsen <em>administrer indholdselementer</em> kan "
+"tilsidesætte disse indstillinger."
+
+#: modules/node/content_types.inc:192
+msgid "Save content type"
+msgstr "Gem indholdstype"
+
+#: modules/node/content_types.inc:200,282
+msgid "Delete content type"
+msgstr "Slet indholdstype"
+
+#: modules/node/content_types.inc:231
+msgid "The machine-readable name %type is already taken."
+msgstr "Navnet %type er allerede i brug."
+
+#: modules/node/content_types.inc:234
+msgid ""
+"The machine-readable name must contain only lowercase letters, numbers, and "
+"underscores."
+msgstr ""
+"Det maskinlæsbare navn kan kun indeholde små bogstaver, understregninger og "
+"tal."
+
+#: modules/node/content_types.inc:239
+msgid "Invalid machine-readable name. Please enter a name other than %invalid."
+msgstr "Ugyldigt maskinlæsbart navn. Indtast et andet navn end %invalid."
+
+#: modules/node/content_types.inc:246
+msgid "The human-readable name %name is already taken."
+msgstr "Navnet %name er allerede i brug."
+
+#: modules/node/content_types.inc:326
+msgid "The content type %name has been reset to its default values."
+msgstr "Indstillinger for indholdstypen %name nulstillet."
+
+#: modules/node/content_types.inc:331
+msgid "The content type %name has been updated."
+msgstr "Indholdstypen %name opdateret."
+
+#: modules/node/content_types.inc:334
+msgid "The content type %name has been added."
+msgstr "Indholdstypen %name tilføjet."
+
+#: modules/node/content_types.inc:383
+msgid "Are you sure you want to delete the content type %type?"
+msgstr "Ønsker du at slette indholdstypen %type?"
+
+#: modules/node/content_types.inc:403
+msgid "The content type %name has been deleted."
+msgstr "Indholdstypen %name slettet."
+
+#: modules/node/content_types.inc:335
+msgid "Added content type %name."
+msgstr "Indholdstype %name tilføjet."
+
+#: modules/node/content_types.inc:404
+msgid "Deleted content type %name."
+msgstr "Indholdstypen %name slettet."
+
+#: modules/node/content_types.inc:350
+msgid "Changed the content type of 1 post from %old-type to %type."
+msgid_plural ""
+"Changed the content type of @count posts from %old-type to %type."
+msgstr[0] "Indholdstype for 1 indlæg skiftet fra  %old-type to %type."
+msgstr[1] "Indholdstype for @count indlæg skiftet fra  %old-type to %type."
+
+#: modules/node/content_types.inc:388
+msgid ""
+"<strong>Warning:</strong> there is currently 1 %type post on your site. It "
+"may not be able to be displayed or edited correctly, once you have removed "
+"this content type."
+msgid_plural ""
+"<strong>Warning:</strong> there are currently @count %type posts on your "
+"site. They may not be able to be displayed or edited correctly, once you "
+"have removed this content type."
+msgstr[0] ""
+"<strong>Advarsel:</strong> der er i øjeblikket 1 %type-element på dit site. "
+"Det bliver muligvis ikke længere vist korrekt hvis du sletter indholdstypen."
+msgstr[1] ""
+"<strong>Advarsel:</strong> der er i øjeblikket @count %type-elementer på dit "
+"site. De bliver muligvis ikke længere vist korrekt hvis du sletter "
+"indholdstypen."
+
+#: modules/node/node.admin.inc:17
+msgid ""
+"If the site is experiencing problems with permissions to content, you may "
+"have to rebuild the permissions cache. Possible causes for permission "
+"problems are disabling modules or configuration changes to permissions. "
+"Rebuilding will remove all privileges to posts, and replace them with "
+"permissions based on the current modules and settings."
+msgstr ""
+"Hvis der er problemer med adgang til indholdet kan det være nødvendigt at "
+"gendanne adgangslisten. Problemerne kan skyldes at du har deaktiveret et "
+"modul eller ændret indstillingerne for adgangsstyring. Når du gendanner "
+"adgangslisten erstattes alle tilladelser med standarder baseret på de "
+"nuværende moduler og indstillinger."
+
+#: modules/node/node.admin.inc:18
+msgid ""
+"Rebuilding may take some time if there is a lot of content or complex "
+"permission settings. After rebuilding has completed posts will automatically "
+"use the new permissions."
+msgstr ""
+"Det kan tage lidt tid at gendanne adgangslisten hvis der er meget indhold "
+"eller komplicerede tilladelser. Efter gendannelsen bruges de nye tilladelser "
+"automatisk."
+
+#: modules/node/node.admin.inc:22
+msgid "Node access status"
+msgstr "Status for adgang"
+
+#: modules/node/node.admin.inc:32
+msgid "Number of posts on main page"
+msgstr "Antal indlæg på forsiden"
+
+#: modules/node/node.admin.inc:34
+msgid ""
+"The default maximum number of posts to display per page on overview pages "
+"such as the main page."
+msgstr ""
+"Det maksimale antal indlæg der vises pr. side på oversigtssider som forsiden."
+
+#: modules/node/node.admin.inc:37
+msgid "Length of trimmed posts"
+msgstr "Længde af beskårne indlæg"
+
+#: modules/node/node.admin.inc:40
+msgid "200 characters"
+msgstr "200 tegn"
+
+#: modules/node/node.admin.inc:41
+msgid "400 characters"
+msgstr "400 tegn"
+
+#: modules/node/node.admin.inc:42
+msgid "600 characters"
+msgstr "600 tegn"
+
+#: modules/node/node.admin.inc:43
+msgid "800 characters"
+msgstr "800 tegn"
+
+#: modules/node/node.admin.inc:44
+msgid "1000 characters"
+msgstr "1000 tegn"
+
+#: modules/node/node.admin.inc:45
+msgid "1200 characters"
+msgstr "1200 tegn"
+
+#: modules/node/node.admin.inc:46
+msgid "1400 characters"
+msgstr "1400 tegn"
+
+#: modules/node/node.admin.inc:47
+msgid "1600 characters"
+msgstr "1600 tegn"
+
+#: modules/node/node.admin.inc:48
+msgid "1800 characters"
+msgstr "1800 tegn"
+
+#: modules/node/node.admin.inc:49
+msgid "2000 characters"
+msgstr "2000 tegn"
+
+#: modules/node/node.admin.inc:51
+msgid ""
+"The maximum number of characters used in the trimmed version of a post. "
+"Drupal will use this setting to determine at which offset long posts should "
+"be trimmed. The trimmed version of a post is typically used as a teaser when "
+"displaying the post on the main page, in XML feeds, etc. To disable teasers, "
+"set to 'Unlimited'. Note that this setting will only affect new or updated "
+"content and will not affect existing teasers."
+msgstr ""
+"Det maksimale antal tegn i beskårne indlæg. Drupal bruger indstillingen til "
+"at bestemme hvor i teksten lange indlæg beskæres. Den beskårne version af et "
+"indlæg bruges når indlægget vises på forsiden eller i XML kilder. Sæt til "
+"ubegrænset hvis du ikke ønsker at vise beskårne indlæg. Bemærk at denne "
+"indstilling kun påvirker nyt eller opdateret indhold."
+
+#: modules/node/node.admin.inc:56
+msgid "Preview post"
+msgstr "Gennemse indlæg"
+
+#: modules/node/node.admin.inc:59
+msgid "Must users preview posts before submitting?"
+msgstr "Skal brugerne gennemse indlæg før de indsendes?"
+
+#: modules/node/node.admin.inc:80
+msgid "Are you sure you want to rebuild the permissions on site content?"
+msgstr "Ønsker du at gendanne tilladelser?"
+
+#: modules/node/node.admin.inc:81
+msgid ""
+"This action rebuilds all permissions on site content, and may be a lengthy "
+"process. This action cannot be undone."
+msgstr ""
+"Handlingen gendanner alle tilladelser og kan tage lang tid. Handlingen kan "
+"ikke fortrydes."
+
+#: modules/node/node.admin.inc:99
+msgid "Publish"
+msgstr "Udgiv"
+
+#: modules/node/node.admin.inc:104
+msgid "Unpublish"
+msgstr "Træk tilbage"
+
+#: modules/node/node.admin.inc:109
+msgid "Promote to front page"
+msgstr "Forfrem til forside"
+
+#: modules/node/node.admin.inc:114
+msgid "Demote from front page"
+msgstr "Degrader fra forside"
+
+#: modules/node/node.admin.inc:119
+msgid "Make sticky"
+msgstr "Gør indlægget klæbrigt"
+
+#: modules/node/node.admin.inc:124
+msgid "Remove stickiness"
+msgstr "Fjern klæbrighed"
+
+#: modules/node/node.admin.inc:144,501
+msgid "published"
+msgstr "udgivet"
+
+#: modules/node/node.admin.inc:145,501
+msgid "not published"
+msgstr "ikke udgivet"
+
+#: modules/node/node.admin.inc:146
+msgid "promoted"
+msgstr "forfremmet"
+
+#: modules/node/node.admin.inc:147
+msgid "not promoted"
+msgstr "ikke forfremmet"
+
+#: modules/node/node.admin.inc:148
+msgid "sticky"
+msgstr "klæbrig"
+
+#: modules/node/node.admin.inc:149
+msgid "not sticky"
+msgstr "ikke klæbrig"
+
+#: modules/node/node.admin.inc:155
+msgid "Up to date translation"
+msgstr "Oversættelse ajour"
+
+#: modules/node/node.admin.inc:156
+msgid "Outdated translation"
+msgstr "Forældet oversættelse"
+
+#: modules/node/node.admin.inc:160
+msgid "type"
+msgstr "type"
+
+#: modules/node/node.admin.inc:164
+msgid "category"
+msgstr "kategori"
+
+#: modules/node/node.admin.inc:169
+msgid "language"
+msgstr "sprog"
+
+#: modules/node/node.admin.inc:221
+msgid "Show only items where"
+msgstr "Vis kun elementer hvor"
+
+#: modules/node/node.admin.inc:239
+msgid "<em>and</em> where <strong>%a</strong> is <strong>%b</strong>"
+msgstr "<em>og</em> hvor <strong>%a</strong> er <strong>%b</strong>"
+
+#: modules/node/node.admin.inc:242
+msgid "<strong>%a</strong> is <strong>%b</strong>"
+msgstr "<strong>%a</strong> er <strong>%b</strong>"
+
+#: modules/node/node.admin.inc:370
+msgid "The update has encountered an error."
+msgstr "Opdateringen stødte på en fejl."
+
+#: modules/node/node.admin.inc:436
+msgid "An error occurred and processing did not complete."
+msgstr "Der opstod en fejl og handlingen blev ikke gennemført."
+
+#: modules/node/node.admin.inc:522
+msgid "No items selected."
+msgstr "Ingen elementer valgt."
+
+#: modules/node/node.admin.inc:620
+msgid "Are you sure you want to delete these items?"
+msgstr "Ønsker du at slette disse elementer?"
+
+#: modules/node/node.admin.inc:630
+msgid "The items have been deleted."
+msgstr "Indholdselementer slettet."
+
+#: modules/node/node.admin.inc:437
+msgid "1 item successfully processed:"
+msgid_plural "@count items successfully processed:"
+msgstr[0] "1 element behandlet:"
+msgstr[1] "@count elementer behandlet:"
+
+#: modules/node/node.pages.inc:57
+msgid "Create @name"
+msgstr "Opret @name"
+
+#: modules/node/node.pages.inc:147
+msgid "Revision information"
+msgstr "Versionsinformation"
+
+#: modules/node/node.pages.inc:161
+msgid "Log message"
+msgstr "Logbesked"
+
+#: modules/node/node.pages.inc:163
+msgid ""
+"An explanation of the additions or updates being made to help other authors "
+"understand your motivations."
+msgstr ""
+"En beskrivelse af de tilføjelser eller ændringer der er foretaget til hjælp "
+"for andre bidragyderes forståelse af dine motiver."
+
+#: modules/node/node.pages.inc:171
+msgid "Authoring information"
+msgstr "Forfatter"
+
+#: modules/node/node.pages.inc:183
+msgid "Leave blank for %anonymous."
+msgstr "Lad feltet være blankt for %anonymous."
+
+#: modules/node/node.pages.inc:189
+msgid "Format: %time. Leave blank to use the time of form submission."
+msgstr ""
+"Format: %time. Lad feltet være tomt for at bruge oprettelsestidspunktet."
+
+#: modules/node/node.pages.inc:200
+msgid "Publishing options"
+msgstr "Udgivelsesindstillinger"
+
+#: modules/node/node.pages.inc:280
+msgid "Show summary in full view"
+msgstr "Vis sammendrag i fuld visning"
+
+#: modules/node/node.pages.inc:433
+msgid ""
+"The trimmed version of your post shows what your post looks like when "
+"promoted to the main page or when exported for syndication.<span class=\"no-"
+"js\"> You can insert the delimiter \"&lt;!--break--&gt;\" (without the "
+"quotes) to fine-tune where your post gets split.</span>"
+msgstr ""
+"Den beskårne version af dit indlæg viser hvordan det vil se ud når indlægget "
+"vises på forsiden eller udgives i et feed. <span class=\"no-js\">Du kan "
+"indsætte afgrænsningen \"&lt;!--break--&gt;\" (uden anførselstegn) for at "
+"angive hvor beskæringen skal foretages.</span>"
+
+#: modules/node/node.pages.inc:434
+msgid "Preview trimmed version"
+msgstr "Gennemse beskåret version"
+
+#: modules/node/node.pages.inc:436
+msgid "Preview full version"
+msgstr "Gennemse fuld version"
+
+#: modules/node/node.pages.inc:459
+msgid "@type %title has been created."
+msgstr "@type %title oprettet."
+
+#: modules/node/node.pages.inc:463
+msgid "@type %title has been updated."
+msgstr "@type %title opdateret."
+
+#: modules/node/node.pages.inc:473
+msgid "The post could not be saved."
+msgstr "Indlægget kunne ikke gemmes."
+
+#: modules/node/node.pages.inc:501
+msgid "Are you sure you want to delete %title?"
+msgstr "Ønsker du at slette %title?"
+
+#: modules/node/node.pages.inc:524
+msgid "Revisions for %title"
+msgstr "Versioner af %title"
+
+#: modules/node/node.pages.inc:526
+msgid "Revision"
+msgstr "Version"
+
+#: modules/node/node.pages.inc:544,550
+msgid "!date by !username"
+msgstr "!date af !username"
+
+#: modules/node/node.pages.inc:547
+msgid "current revision"
+msgstr "aktuelle version"
+
+#: modules/node/node.pages.inc:553
+msgid "revert"
+msgstr "tilbagefør"
+
+#: modules/node/node.pages.inc:570
+msgid "Are you sure you want to revert to the revision from %revision-date?"
+msgstr "Ønsker du at vende tilbage til versionen fra %revision-date?"
+
+#: modules/node/node.pages.inc:570
+msgid "Revert"
+msgstr "Tilbagefør"
+
+#: modules/node/node.pages.inc:576
+msgid "Copy of the revision from %date."
+msgstr "Kopi af versionen fra %date."
+
+#: modules/node/node.pages.inc:584
+msgid ""
+"@type %title has been reverted back to the revision from %revision-date."
+msgstr "@type %title tilbageført til versionen fra %revision-date"
+
+#: modules/node/node.pages.inc:590
+msgid "Are you sure you want to delete the revision from %revision-date?"
+msgstr "Ønsker du at slette versionen fra %revision-date?"
+
+#: modules/node/node.pages.inc:598
+msgid "Revision from %revision-date of @type %title has been deleted."
+msgstr "Version af @type %title fra %revision-date slettet."
+
+#: modules/node/node.pages.inc:458
+msgid "@type: added %title."
+msgstr "@type: %title tilføjet."
+
+#: modules/node/node.pages.inc:462
+msgid "@type: updated %title."
+msgstr "@type: %title opdateret."
+
+#: modules/node/node.pages.inc:583
+msgid "@type: reverted %title revision %revision."
+msgstr "@type: %title version %revision tilbageført."
+
+#: modules/node/node.pages.inc:597
+msgid "@type: deleted %title revision %revision."
+msgstr "@type: %title version %revision slettet."
+
+#: modules/node/node.module:29
+msgid "The content access permissions need to be rebuilt."
+msgstr "Indholdstilladelser skal genopbygges."
+
+#: modules/node/node.module:32
+msgid ""
+"The content access permissions need to be rebuilt. Please visit <a href="
+"\"@node_access_rebuild\">this page</a>."
+msgstr ""
+"Adgangstilladelserne skal <a href=\"@node_access_rebuild\">genopbygges</a>."
+
+#: modules/node/node.module:39
+msgid ""
+"The node module manages content on your site, and stores all posts "
+"(regardless of type) as a \"node\". In addition to basic publishing "
+"settings, including whether the post has been published, promoted to the "
+"site front page, or should remain present (or sticky) at the top of lists, "
+"the node module also records basic information about the author of a post. "
+"Optional revision control over edits is available. For additional "
+"functionality, the node module is often extended by other modules."
+msgstr ""
+"Node-modulet håndterer indholdet på dit site, og gemmer alle indlæg (uanset "
+"type) som \"indholdselementer\". Udover grundlæggende "
+"udgivelsesindstillinger (om indlægget er udgivet, om det vises på forsiden "
+"eller om det vises øverst på lister), gemmer modulet også information om "
+"indlæggets forfatter. Der er adgang til valgfri versionskontrol. Node-"
+"modulet udvides ofte af andre moduler for at tilføje funktionalitet."
+
+#: modules/node/node.module:40
+msgid ""
+"Though each post on your site is a node, each post is also of a particular "
+"<a href=\"@content-type\">content type</a>. <a href=\"@content-type"
+"\">Content types</a> are used to define the characteristics of a post, "
+"including the title and description of the fields displayed on its add and "
+"edit pages. Each content type may have different default settings for "
+"<em>Publishing options</em> and other workflow controls. By default, the two "
+"content types in a standard Drupal installation are <em>Page</em> and "
+"<em>Story</em>. Use the <a href=\"@content-type\">content types page</a> to "
+"add new or edit existing content types. Additional content types also become "
+"available as you enable additional core, contributed and custom modules."
+msgstr ""
+"Selvom hvert indlæg på dit site er et indholdselement, er hvert indlæg af en "
+"bestemt <a href=\"@content-type\">indholdstype</a>. <a href=\"@content-type"
+"\">Indholdstyper</a> bruges til at definere indlæggets karkateristik, "
+"inklusiv titel og beskrivelse af de felter der vises i formularen når indlæg "
+"oprettes og redigeres. Hver indholdstype kan have forskellige indstillinger "
+"for <em>udgivelse</em> og arbejdsgange. I en standard Drupal-installation "
+"findes der to indholdstyper: <em>Sider</em> og <em>artikler</em>. Brug siden "
+"<a href=\"@content-type\">indholdstyper</a> til at oprette eller redigere "
+"indholdstyper. Flere indholdstyper bliver tilgængelige når du aktiverer "
+"ekstra moduler."
+
+#: modules/node/node.module:41
+msgid ""
+"The administrative <a href=\"@content\">content page</a> allows you to "
+"review and manage your site content. The <a href=\"@post-settings\">post "
+"settings page</a> sets certain options for the display of posts. The node "
+"module makes a number of permissions available for each content type, which "
+"may be set by role on the <a href=\"@permissions\">permissions page</a>."
+msgstr ""
+"Under <a href=\"@content\">indhold</a> kan du gennemse og håndterer sitets "
+"indhold. Under <a href=\"@post-settings\">indlæg</a> kan du vælge hvordan "
+"indholdet vises. Node-modulet opretter et antal tilladelser for hver "
+"indholdstype. De kan tilknyttes til de forskellige brugerroller under <a "
+"href=\"@permissions\">tilladelser</a>."
+
+#: modules/node/node.module:42
+msgid ""
+"For more information, see the online handbook entry for <a href=\"@node"
+"\">Node module</a>."
+msgstr ""
+"Læs håndbogens afsnit om <a href=\"@node\">indholdselementer</a> for "
+"yderligere information."
+
+#: modules/node/node.module:47
+msgid ""
+"Below is a list of all the content types on your site. All posts that exist "
+"on your site are instances of one of these content types."
+msgstr ""
+"Her er en liste over alle indholdstyperne på dit site. Alt indhold tilhører "
+"en af disse indholdstyper."
+
+#: modules/node/node.module:49
+msgid ""
+"To create a new content type, enter the human-readable name, the machine-"
+"readable name, and all other relevant fields that are on this page. Once "
+"created, users of your site will be able to create posts that are instances "
+"of this content type."
+msgstr ""
+"Indtast et navn, et internt navn og alle andre relevante oplysninger for at "
+"oprette en indholdstype. Derefter kan brugerne oprette indhold af den givne "
+"type."
+
+#: modules/node/node.module:51
+msgid ""
+"The revisions let you track differences between multiple versions of a post."
+msgstr ""
+"Versionsstyring lader dig se forskellene mellem flere udgaver af et indlæg."
+
+#: modules/node/node.module:260
+msgid ""
+"You specified that the summary should not be shown when this post is "
+"displayed in full view. This setting is ignored when the summary is empty."
+msgstr ""
+"Du har valgt at sammendraget ikke skal vises når indlægget vises i fuld "
+"visning. Indstillingen ignoreres hvis sammendraget er tomt."
+
+#: modules/node/node.module:264
+msgid ""
+"You specified that the summary should not be shown when this post is "
+"displayed in full view. This setting has been ignored since you have not "
+"defined a summary for the post. (To define a summary, insert the delimiter "
+"\"&lt;!--break--&gt;\" (without the quotes) in the Body of the post to "
+"indicate the end of the summary and the start of the main content.)"
+msgstr ""
+"Du har valgt at sammendraget ikke skal vises når indlægget vises i fuld "
+"visning. Indstillingen ignoreres da du ikke har defineret et sammendrag for "
+"indlægget. (Opret et sammendrag ved at indætte skillemærket \"&lt;!--break--"
+"&gt;\" (uden anførselstegnene) i brødteksten for at angive slutningen af "
+"sammendraget og starten af indholdet.)"
+
+#: modules/node/node.module:785
+msgid "The body of your @type is too short. You need at least %words words."
+msgstr "Indholdet af din @type er for kort. Du skal skrive mindst %words ord."
+
+#: modules/node/node.module:789
+msgid ""
+"This content has been modified by another user, changes cannot be saved."
+msgstr ""
+"Indholdet er blevet ændret af en anden bruger. Ændringerne kan ikke gemmes."
+
+#: modules/node/node.module:798
+msgid "The username %name does not exist."
+msgstr "Brugernavnet %name findes ikke."
+
+#: modules/node/node.module:980
+msgid "@type %title has been deleted."
+msgstr "@type %title slettet."
+
+#: modules/node/node.module:1095
+msgid "Revision of %title from %date"
+msgstr "Version af %title fra %date"
+
+#: modules/node/node.module:1115
+msgid "Log"
+msgstr "Log"
+
+#: modules/node/node.module:1160
+msgid "Content ranking"
+msgstr "Ordn indhold"
+
+#: modules/node/node.module:1164
+msgid ""
+"The following numbers control which properties the content search should "
+"favor when ordering the results. Higher numbers mean more influence, zero "
+"means the property is ignored. Changing these numbers does not require the "
+"search index to be rebuilt. Changes take effect immediately."
+msgstr ""
+"De følgende tal bestemmer hvilke egenskaber søgefunktionen skal vægte højest "
+"når søgeresultaterne sorteres. Højere tal betyder større indflydelse, nul "
+"betyder at egenskaben ignoreres. Hvis du ændrer tallene skal søgeindekset "
+"ikke genopbygges. Ændringerne har øjeblikkelig virkning."
+
+#: modules/node/node.module:1167
+msgid "Keyword relevance"
+msgstr "Nøgelordsrelevans"
+
+#: modules/node/node.module:1168
+msgid "Recently posted"
+msgstr "Oprettet for nylig"
+
+#: modules/node/node.module:1170
+msgid "Number of comments"
+msgstr "Antal kommentarer"
+
+#: modules/node/node.module:1173
+msgid "Number of views"
+msgstr "Antal visninger"
+
+#: modules/node/node.module:1323
+msgid "Factor"
+msgstr "Faktor"
+
+#: modules/node/node.module:1357
+msgid "Read more"
+msgstr "Læs mere"
+
+#: modules/node/node.module:1361
+msgid "Read the rest of !title."
+msgstr "Læs resten af !title."
+
+#: modules/node/node.module:1624,1630,1631
+msgid "Syndicate"
+msgstr "Udgiv"
+
+#: modules/node/node.module:1745
+msgid "RSS"
+msgstr "RSS"
+
+#: modules/node/node.module:1749
+msgid ""
+"<h1 class=\"title\">Welcome to your new Drupal website!</h1><p>Please follow "
+"these steps to set up and start using your website:</p>"
+msgstr ""
+"<h1 class=\"title\">Velkommen til dit nye Drupal-site!</h1><p>Følg disse "
+"trin for at komme i gang med dit nye site:</p>"
+
+#: modules/node/node.module:1752
+msgid ""
+"<strong>Configure your website</strong> Once logged in, visit the <a href="
+"\"@admin\">administration section</a>, where you can <a href=\"@config"
+"\">customize and configure</a> all aspects of your website."
+msgstr ""
+"<strong>Konfigurer dit site</strong> Når du har logget ind kan du gå til <a "
+"href=\"@admin\">administrationssiderne</a> hvor du kan <a href=\"@config"
+"\">indstille og tilpasse</a> alle aspekter af dit site."
+
+#: modules/node/node.module:1753
+msgid ""
+"<strong>Enable additional functionality</strong> Next, visit the <a href="
+"\"@modules\">module list</a> and enable features which suit your specific "
+"needs. You can find additional modules in the <a href=\"@download_modules"
+"\">Drupal modules download section</a>."
+msgstr ""
+"<strong>Aktiver yderligere funktionalitet</strong> Gå derefter til <a href="
+"\"@modules\">modullisten</a> og aktiver de funktioner, der svarer til dine "
+"behov. Du kan finde yderligere moduler på <a href=\"@download_modules"
+"\">Drupal.org</a>."
+
+#: modules/node/node.module:1754
+msgid ""
+"<strong>Customize your website design</strong> To change the \"look and feel"
+"\" of your website, visit the <a href=\"@themes\">themes section</a>. You "
+"may choose from one of the included themes or download additional themes "
+"from the <a href=\"@download_themes\">Drupal themes download section</a>."
+msgstr ""
+"<strong>Tilpas sitets design</strong> Du kan ændre udseendet af dit site ved "
+"at gå til <a href=\"@themes\">temasiderne</a>. Du kan vælge blandt de "
+"inkluderede temaer eller hente yderligere temaer fra <a href="
+"\"@download_themes\">Drupal.org</a>."
+
+#: modules/node/node.module:1755
+msgid ""
+"<strong>Start posting content</strong> Finally, you can <a href=\"@content"
+"\">create content</a> for your website. This message will disappear once you "
+"have promoted a post to the front page."
+msgstr ""
+"<strong>Opret indhold</strong> Til slut kan du <a href=\"@content\">oprette "
+"indhold</a> på dit site. Denne besked forsvinder når du har udgivet dit "
+"første indlæg."
+
+#: modules/node/node.module:1757
+msgid ""
+"For more information, please refer to the <a href=\"@help\">help section</"
+"a>, or the <a href=\"@handbook\">online Drupal handbooks</a>. You may also "
+"post at the <a href=\"@forum\">Drupal forum</a>, or view the wide range of "
+"<a href=\"@support\">other support options</a> available."
+msgstr ""
+"For yderligere information henvises til <a href=\"@help\">hjælp</a> eller <a "
+"href=\"@handbook\">Drupal håndbogen</a>. Du kan også spørge i <a href="
+"\"@forum\">Drupal-forummet</a> eller se det store udvalg af andre <a href="
+"\"@support\">muligheder for hjælp</a>."
+
+#: modules/node/node.module:1829,1881
+msgid "Advanced search"
+msgstr "Avanceret søgning"
+
+#: modules/node/node.module:1840
+msgid "Containing any of the words"
+msgstr "Indeholdende et af ordene"
+
+#: modules/node/node.module:1846
+msgid "Containing the phrase"
+msgstr "Indeholdende sætningen"
+
+#: modules/node/node.module:1852
+msgid "Containing none of the words"
+msgstr "Indeholdende ingen af ordene"
+
+#: modules/node/node.module:1861
+msgid "Only in the category(s)"
+msgstr "Kun i kategorierne"
+
+#: modules/node/node.module:1874
+msgid "Only of the type(s)"
+msgstr "Kun af typen"
+
+#: modules/node/node.module:2296
+msgid "Rebuilding content access permissions"
+msgstr "Genopbygger indholdstilladelser."
+
+#: modules/node/node.module:2326
+msgid "Content permissions have been rebuilt."
+msgstr "Indholdstilladelser genopbygget."
+
+#: modules/node/node.module:2372
+msgid "The content access permissions have been rebuilt."
+msgstr "Indholdstilladelser genopbygget."
+
+#: modules/node/node.module:2376
+msgid "The content access permissions have not been properly rebuilt."
+msgstr "Indholdstilladelser ikke genopbygget korrekt."
+
+#: modules/node/node.module:2464
+msgid "Submitted by !username on @datetime"
+msgstr "Skrevet af !username, @datetime"
+
+#: modules/node/node.module:2479
+msgid "When either saving a new post or updating an existing post"
+msgstr "Når et indlæg gemmes eller opdateres"
+
+#: modules/node/node.module:2482
+msgid "After saving a new post"
+msgstr "Efter nyt indlæg er gemt"
+
+#: modules/node/node.module:2485
+msgid "After saving an updated post"
+msgstr "Efter opdateret indlæg er gemt"
+
+#: modules/node/node.module:2488
+msgid "After deleting a post"
+msgstr "Efter et indlæg er slettet."
+
+#: modules/node/node.module:2491
+msgid "When content is viewed by an authenticated user"
+msgstr "Når indhold læses af en godkendt bruger"
+
+#: modules/node/node.module:2505
+msgid "Publish post"
+msgstr "Udgiv indlæg"
+
+#: modules/node/node.module:2515
+msgid "Unpublish post"
+msgstr "Skjul indlæg"
+
+#: modules/node/node.module:2525
+msgid "Make post sticky"
+msgstr "Gør indlægget klæbrigt"
+
+#: modules/node/node.module:2535
+msgid "Make post unsticky"
+msgstr "Fjern klæbrighed"
+
+#: modules/node/node.module:2545
+msgid "Promote post to front page"
+msgstr "Vis på forsiden"
+
+#: modules/node/node.module:2555
+msgid "Remove post from front page"
+msgstr "Fjern fra forsiden"
+
+#: modules/node/node.module:2565
+msgid "Change the author of a post"
+msgstr "Skift indlæggets forfatter"
+
+#: modules/node/node.module:2576
+msgid "Save post"
+msgstr "Gem indlæg"
+
+#: modules/node/node.module:2584
+msgid "Unpublish post containing keyword(s)"
+msgstr "Skjul indlæg der indeholder"
+
+#: modules/node/node.module:2667
+msgid "The username of the user to which you would like to assign ownership."
+msgstr "Brugernavnet på brugeren som skal tildeles ejerskab."
+
+#: modules/node/node.module:2706
+msgid "Please enter a valid username."
+msgstr "Indtaste et gyldigt brugernavn."
+
+#: modules/node/node.module:2720
+msgid ""
+"The post will be unpublished if it contains any of the character sequences "
+"above. Use a comma-separated list of character sequences. Example: funny, "
+"bungee jumping, \"Company, Inc.\". Character sequences are case-sensitive."
+msgstr ""
+"Indlægget skjules hvis det indeholder en af tegnsekvenserne ovenfor. Brug en "
+"kommasepareret liste af tegnsekvenser. F.eks. sjov, trampolinspring, \"Firma "
+"A/S\". Der skelnes mellem store og små bogstaver."
+
+#: modules/node/node.module:979
+msgid "@type: deleted %title."
+msgstr "@type: %title slettet."
+
+#: modules/node/node.module:2599
+msgid "Set @type %title to published."
+msgstr "@type %title sat til udgivet."
+
+#: modules/node/node.module:2608,2743
+msgid "Set @type %title to unpublished."
+msgstr "@type %title sat til skjult."
+
+#: modules/node/node.module:2617
+msgid "Set @type %title to sticky."
+msgstr "@type %title sat til klæbrig."
+
+#: modules/node/node.module:2626
+msgid "Set @type %title to unsticky."
+msgstr "@type %title sat til ikke klæbrig."
+
+#: modules/node/node.module:2635
+msgid "Promoted @type %title to front page."
+msgstr "@type %title vises nu på forsiden."
+
+#: modules/node/node.module:2644
+msgid "Removed @type %title from front page."
+msgstr "@type %title fjernet fra forsiden."
+
+#: modules/node/node.module:2653
+msgid "Saved @type %title"
+msgstr "@type %title gemt"
+
+#: modules/node/node.module:2663
+msgid "Changed owner of @type %title to uid %name."
+msgstr "Ejer af @type %title ændret til uid %name."
+
+#: modules/node/node.module:1121
+msgid "administer content types"
+msgstr "administrer indholdstyper"
+
+#: modules/node/node.module:1121
+msgid "administer nodes"
+msgstr "administrer indhold"
+
+#: modules/node/node.module:1121
+msgid "access content"
+msgstr "tilgå indhold"
+
+#: modules/node/node.module:1121
+msgid "view revisions"
+msgstr "se versioner"
+
+#: modules/node/node.module:1121
+msgid "revert revisions"
+msgstr "tilbagefør versioner"
+
+#: modules/node/node.module:1412
+msgid "View, edit, and delete your site's content."
+msgstr "Vis, rediger og slet indhold."
+
+#: modules/node/node.module:1426
+msgid "Post settings"
+msgstr "Indstillinger for formular til oprettelse af indhold"
+
+#: modules/node/node.module:1427
+msgid ""
+"Control posting behavior, such as teaser length, requiring previews before "
+"posting, and the number of posts on the front page."
+msgstr ""
+"Bestem længde af smagsprøve, tvungne gennemsyn og antallet af indlæg på "
+"forsiden."
+
+#: modules/node/node.module:1445
+msgid ""
+"Manage posts by content type, including default status, front page "
+"promotion, etc."
+msgstr "Håndter indhold efter indholdstype, status, rang osv."
+
+#: modules/node/node.module:1456
+msgid "Add content type"
+msgstr "Tilføj indholdstype"
+
+#: modules/node/node.module:1470
+msgid "Create content"
+msgstr "Opret indhold"
+
+#: modules/node/node.module:1546,1556
+msgid "Revisions"
+msgstr "Versioner"
+
+#: modules/node/node.module:1565
+msgid "Revert to earlier revision"
+msgstr "Tilbagefør tidligere version"
+
+#: modules/node/node.module:1575
+msgid "Delete earlier revision"
+msgstr "Slet tidligere version"
+
+#: modules/node/node.install:9
+msgid "The base table for nodes."
+msgstr "Basis-tabellen for indholdselementer."
+
+#: modules/node/node.install:12
+msgid "The primary identifier for a node."
+msgstr "Primær identifikation af et indholdselement."
+
+#: modules/node/node.install:17
+msgid "The current {node_revisions}.vid version identifier."
+msgstr "Den aktueller {node_revisions}.vid versionsidentifikation."
+
+#: modules/node/node.install:23
+msgid "The {node_type}.type of this node."
+msgstr "Indholdselementets {node_type}.type."
+
+#: modules/node/node.install:29
+msgid "The {languages}.language of this node."
+msgstr "Indholdselementets {languages}.language."
+
+#: modules/node/node.install:41
+msgid ""
+"The {users}.uid that owns this node; initially, this is the user that "
+"created it."
+msgstr ""
+"{users}.uid som ejer indholdselementet, til en start brugeren som oprettede "
+"det."
+
+#: modules/node/node.install:46
+msgid ""
+"Boolean indicating whether the node is published (visible to non-"
+"administrators)."
+msgstr ""
+"Boolsk værdi som angiver om indholdselementet er udgivet (synligt for ikke-"
+"administratorer)."
+
+#: modules/node/node.install:51
+msgid "The Unix timestamp when the node was created."
+msgstr "Timestamp for oprettelse af indholdselementet."
+
+#: modules/node/node.install:56
+msgid "The Unix timestamp when the node was most recently saved."
+msgstr "Timestamp for seneste opdatereing af indholdselementet."
+
+#: modules/node/node.install:61
+msgid ""
+"Whether comments are allowed on this node: 0 = no, 1 = read only, 2 = read/"
+"write."
+msgstr "Om det kommentarer er tilladt: 0 = nej, 1 = kun læse, 2 = læse/skrive."
+
+#: modules/node/node.install:71
+msgid ""
+"Previously, a boolean indicating whether the node was \"in moderation\"; "
+"mostly no longer used."
+msgstr ""
+"Førhen en boolsk værdi der angav om indholdet afventede godkendelse. Ikke "
+"længere i brug."
+
+#: modules/node/node.install:76
+msgid ""
+"Boolean indicating whether the node should be displayed at the top of lists "
+"in which it appears."
+msgstr ""
+"Boolsk værdi som angiver, om indholdselementet skal vises øverst på de "
+"lister, som det optræder på."
+
+#: modules/node/node.install:81
+msgid ""
+"The translation set id for this node, which equals the node id of the source "
+"post in each set."
+msgstr ""
+"Indholdselementets oversættelses-ID, som svarer til node id for "
+"kildeindlægget i hver gruppe."
+
+#: modules/node/node.install:87
+msgid "A boolean indicating whether this translation page needs to be updated."
+msgstr "En boolks værdi som angiver om oversættelsen trænger til opdatering."
+
+#: modules/node/node.install:111
+msgid ""
+"Identifies which realm/grant pairs a user must possess in order to view, "
+"update, or delete specific nodes."
+msgstr ""
+"Angiver hvilke domæne/beviling-par en bruger skal have for at kunne se, "
+"opdatere og slette bestemte indholdselementer."
+
+#: modules/node/node.install:114
+msgid "The {node}.nid this record affects."
+msgstr "{node}.nid som posten vedrører."
+
+#: modules/node/node.install:120
+msgid ""
+"The grant ID a user must possess in the specified realm to gain this row's "
+"privileges on the node."
+msgstr ""
+"Bevillings ID som brugeren skal have i et givet domæne for at modtage denne "
+"rækkes privilegier for indholdselementet."
+
+#: modules/node/node.install:126
+msgid ""
+"The realm in which the user must possess the grant ID. Each node access node "
+"can define one or more realms."
+msgstr ""
+"Domænet i hvilket brugeren skal have bevillings IDet. Hver node access node "
+"kan definerer et eller flere domæner."
+
+#: modules/node/node.install:132
+msgid ""
+"Boolean indicating whether a user with the realm/grant pair can view this "
+"node."
+msgstr ""
+"Boolsk værdi som angiver om en bruger med domæne/bevilling-parret kan se "
+"indholdselementet."
+
+#: modules/node/node.install:139
+msgid ""
+"Boolean indicating whether a user with the realm/grant pair can edit this "
+"node."
+msgstr ""
+"Boolsk værdi som angiver om en bruger med domæne/bevilling-parret kan "
+"redigere indholdselementet."
+
+#: modules/node/node.install:146
+msgid ""
+"Boolean indicating whether a user with the realm/grant pair can delete this "
+"node."
+msgstr ""
+"Boolsk værdi som angiver om en bruger med domæne/bevilling-parret kan slette "
+"indholdselementet."
+
+#: modules/node/node.install:157
+msgid "Access statistics for {node}s."
+msgstr "Statistik for {node}s."
+
+#: modules/node/node.install:160
+msgid "The {node}.nid for these statistics."
+msgstr "Statistikkens {node}.nid."
+
+#: modules/node/node.install:165
+msgid "The total number of times the {node} has been viewed."
+msgstr "Antal gange {node} er blevet læst."
+
+#: modules/node/node.install:172
+msgid "The total number of times the {node} has been viewed today."
+msgstr "Antal gange {node} er blevet læst i dag."
+
+#: modules/node/node.install:179
+msgid "The most recent time the {node} has been viewed."
+msgstr "Seneste gang {node} er blevet læst."
+
+#: modules/node/node.install:189
+msgid "Stores information about each saved version of a {node}."
+msgstr "Gemmer information om alle gemte version af en {node}."
+
+#: modules/node/node.install:192
+msgid "The {node} this version belongs to."
+msgstr "Den {node} som versionen tilhører."
+
+#: modules/node/node.install:198
+msgid "The primary identifier for this version."
+msgstr "Primær identifikation af versionen."
+
+#: modules/node/node.install:203
+msgid "The {users}.uid that created this version."
+msgstr "{users}.uid som oprettede denne version."
+
+#: modules/node/node.install:208
+msgid "The title of this version."
+msgstr "Versionens titel."
+
+#: modules/node/node.install:214
+msgid "The body of this version."
+msgstr "Versionens indhold."
+
+#: modules/node/node.install:219
+msgid "The teaser of this version."
+msgstr "Versionens smagsprøve."
+
+#: modules/node/node.install:224
+msgid "The log entry explaining the changes in this version."
+msgstr "Logbesked som forklarer ændringerne i denne version."
+
+#: modules/node/node.install:229
+msgid "A Unix timestamp indicating when this version was created."
+msgstr "Timestamp for oprettelsen af denne version."
+
+#: modules/node/node.install:234
+msgid "The input format used by this version's body."
+msgstr "Indholdets format."
+
+#: modules/node/node.install:247
+msgid "Stores information about all defined {node} types."
+msgstr "Gemmer information om alle {node}-typer."
+
+#: modules/node/node.install:250
+msgid "The machine-readable name of this type."
+msgstr "Typens maskinlæsbare navn."
+
+#: modules/node/node.install:255
+msgid "The human-readable name of this type."
+msgstr "Typens navn."
+
+#: modules/node/node.install:261
+msgid "The module that implements this type."
+msgstr "Modulet som implementerer denne type."
+
+#: modules/node/node.install:266
+msgid "A brief description of this type."
+msgstr "En kort beskrivelse af typen."
+
+#: modules/node/node.install:271
+msgid "Help information shown to the user when creating a {node} of this type."
+msgstr "Hjælp til brugeren når der oprettes en {node} af denne type."
+
+#: modules/node/node.install:276
+msgid "Boolean indicating whether this type uses the {node}.title field."
+msgstr "Boolsk værdi som angiver om typen bruger {node}.title-feltet."
+
+#: modules/node/node.install:282
+msgid "The label displayed for the title field on the edit form."
+msgstr "Etiket som vises ved titelfeltet i indholdsformularen."
+
+#: modules/node/node.install:288
+msgid ""
+"Boolean indicating whether this type uses the {node_revisions}.body field."
+msgstr "Boolsk værdi som angiver om typen bruger {node_revisions}.body-feltet."
+
+#: modules/node/node.install:294
+msgid "The label displayed for the body field on the edit form."
+msgstr "Etiket som vises ved brødtekstfeltet i indholdsformularen."
+
+#: modules/node/node.install:300
+msgid "The minimum number of words the body must contain."
+msgstr "Minimum antal ord i indholdet."
+
+#: modules/node/node.install:306
+msgid ""
+"A boolean indicating whether this type is defined by a module (FALSE) or by "
+"a user via a module like the Content Construction Kit (TRUE)."
+msgstr ""
+"Boolsk værdi som angiver om denne type er defineret af et modul {FALSE} "
+"eller af en bruger med et modul som Content Construction Kit (TRUE)."
+
+#: modules/node/node.install:312
+msgid ""
+"A boolean indicating whether this type has been modified by an "
+"administrator; currently not used in any way."
+msgstr ""
+"Boolsk værdi som angiver om typen er blevet tilpasset af en administrator. "
+"Bruges ikke for tiden."
+
+#: modules/node/node.install:318
+msgid ""
+"A boolean indicating whether the administrator can change the machine name "
+"of this type."
+msgstr ""
+"Boolsk værdi som angiver om administratoren kan ændre denne types interne "
+"navn."
+
+#: modules/node/node.install:324
+msgid ""
+"The original machine-readable name of this node type. This may be different "
+"from the current type name if the locked field is 0."
+msgstr ""
+"Indholdstypens oprindelige maskinlæsbare navn. Kan være forskelligt fra det "
+"nuværende navn hvis værdien af feltet låst er 0."
+
+#: modules/node/node.install:35
+msgid "The title of this node, always treated as non-markup plain text."
+msgstr "Indlæggets titel, altid behandlet som ren tekst."
+
+#: modules/node/node.install:66
+msgid ""
+"Boolean indicating whether the node should be displayed on the front page."
+msgstr "Boolsk værdi, som indikerer om indlægget skal vises på forsiden."

@@ -1,0 +1,3 @@
+<div class="forum-topic-header clear-block">  
+<div id="forum-back"><?php print l(t('Back to topic list'), 'forum/'.$variables['node']->forum_tid); ?></div>
+<a id="top"></a>  <?php print $reply_link; ?>  <div class="reply-count">    <?php print $total_posts; ?>    <?php if (!empty($new_posts)): ?>      [<?php print $new_posts; ?>]    <?php endif; ?>    <?php if (!empty($last_post)): ?>       [<?php print $last_post; ?>]    <?php endif; ?>  </div></div>
